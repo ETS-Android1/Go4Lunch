@@ -101,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             viewModel.signOut(this);
             binding.drawerLayout.closeDrawer(GravityCompat.START);
             startSignInActivity();
+            finish();
         }
         return false;
     }

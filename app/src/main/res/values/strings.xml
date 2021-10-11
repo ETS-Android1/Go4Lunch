@@ -15,4 +15,5 @@
     <string name="map_view">Map View</string>
     <string name="list_view">List view</string>
     <string name="work_mates">Work mates</string>
+    <string name="mapbox_access_token">pk.eyJ1IjoiZnJlZGVyaWN0aGllcnkiLCJhIjoiY2t1bWJ1MmluMWM4NzJ4cnYwZGxoZzM3YiJ9.sOeKe3MMKDQ43ipJ-LMntQ</string>
 </resources>
