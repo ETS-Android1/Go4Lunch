@@ -13,4 +13,8 @@
     <string name="menu_gallery">Galerie</string>
     <string name="menu_slideshow">Diaporama</string>
     <string name="logout">Se déconnecter</string>
+    <string name="map_view">Vue Carte</string>
+    <string name="list_view">Vue Liste</string>
+    <string name="work_mates">Collègues</string>
+    <string name="your_lunch">Votre déjeuner</string>
 </resources>

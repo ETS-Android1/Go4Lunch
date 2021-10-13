@@ -15,5 +15,13 @@
     <string name="map_view">Map View</string>
     <string name="list_view">List view</string>
     <string name="work_mates">Work mates</string>
-    <string name="mapbox_access_token">pk.eyJ1IjoiZnJlZGVyaWN0aGllcnkiLCJhIjoiY2t1bWJ1MmluMWM4NzJ4cnYwZGxoZzM3YiJ9.sOeKe3MMKDQ43ipJ-LMntQ</string>
+    <string name="mapbox_access_token" translatable="false">pk.eyJ1IjoiZnJlZGVyaWN0aGllcnkiLCJhIjoiY2t1bWJ1MmluMWM4NzJ4cnYwZGxoZzM3YiJ9.sOeKe3MMKDQ43ipJ-LMntQ</string>
+    <string name="your_lunch">Your lunch</string>
+    <string name="connection_succeed">Successful connection</string>
+    <string name="error_authentication_canceled">Authentication canceled</string>
+    <string name="error_no_internet">No Internet connection</string>
+    <string name="error_unknown_error">Unknown error</string>
+    <string name="user_location_permission_explanation">This app needs location permissions in order to show its functionality.</string>
+    <string name="user_location_permission_not_granted">You didn\'t grant location permissions.</string>
+    <string name="center_on_my_position">Center on my position</string>
 </resources>
