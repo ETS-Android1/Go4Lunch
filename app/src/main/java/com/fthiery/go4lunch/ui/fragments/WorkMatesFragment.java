@@ -22,7 +22,7 @@ public class WorkMatesFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        myViewModel = new ViewModelProvider(this).get(MyViewModel.class);
+        myViewModel = new ViewModelProvider(requireActivity()).get(MyViewModel.class);
 
         binding = FragmentWorkmatesBinding.inflate(inflater, container, false);
 

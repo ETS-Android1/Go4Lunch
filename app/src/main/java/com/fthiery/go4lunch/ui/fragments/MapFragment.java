@@ -23,6 +23,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.Task;
@@ -48,7 +49,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private boolean locationPermissionGranted = false;
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        myViewModel = new ViewModelProvider(this).get(MyViewModel.class);
+        myViewModel = new ViewModelProvider(requireActivity()).get(MyViewModel.class);
 
         binding = FragmentMapBinding.inflate(inflater, container, false);
 
@@ -57,7 +58,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         mapFragment.getMapAsync(this);
 
         // Construct a FusedLocationProviderClient.
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
         return binding.getRoot();
     }
@@ -65,6 +66,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onMapReady(@NonNull GoogleMap gMap) {
         googleMap = gMap;
+
+        googleMap.setOnCameraIdleListener(() -> {
+            LatLng position = googleMap.getCameraPosition().target;
+
+            myViewModel.getRestaurantsAround(position.latitude, position.longitude);
+        });
 
         setMyLocationEnabled();
     }

@@ -3,6 +3,8 @@ package com.fthiery.go4lunch.model;
 
 import android.location.Location;
 
+import androidx.annotation.Nullable;
+
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.model.OpeningHours;
 
@@ -77,5 +79,16 @@ public class Restaurant {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (obj == this) { return true; }
+
+        if (!(obj instanceof Restaurant)) { return false; }
+
+        Restaurant other = (Restaurant) obj;
+        return this.id.equals(other.id)
+                && this.name.equals(other.name);
     }
 }

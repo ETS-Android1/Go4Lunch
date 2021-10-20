@@ -6,6 +6,7 @@ import android.location.Location;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.fthiery.go4lunch.BuildConfig;
@@ -29,8 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MyViewModel extends ViewModel {
-    private UserRepository userRepository;
-    private RestaurantRepository restaurantRepository;
+    private final UserRepository userRepository;
+    private final RestaurantRepository restaurantRepository;
+    private final MutableLiveData<List<Restaurant>> restaurantsLiveData = new MutableLiveData<>();
     private Location lastKnownLocation;
     private boolean locationPermissionGranted;
     private FusedLocationProviderClient fusedLocationProviderClient;
@@ -107,6 +109,12 @@ public class MyViewModel extends ViewModel {
             }
         }
 
+        restaurantsLiveData.setValue(restaurants);
+
         return restaurants;
+    }
+
+    public MutableLiveData<List<Restaurant>> getRestaurantsLiveData() {
+        return restaurantsLiveData;
     }
 }
