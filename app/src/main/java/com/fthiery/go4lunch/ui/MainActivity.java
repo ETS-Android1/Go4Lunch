@@ -2,40 +2,34 @@ package com.fthiery.go4lunch.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.MenuItem;
-import android.view.View;
 import android.view.Menu;
+import android.view.MenuItem;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.ErrorCodes;
 import com.firebase.ui.auth.IdpResponse;
 import com.fthiery.go4lunch.R;
-import com.fthiery.go4lunch.viewmodel.MyViewModel;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.navigation.NavigationView;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.GravityCompat;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.appcompat.app.AppCompatActivity;
-
 import com.fthiery.go4lunch.databinding.ActivityMainBinding;
+import com.fthiery.go4lunch.viewmodel.MyViewModel;
+import com.google.android.material.navigation.NavigationBarView;
+import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Arrays;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NavigationBarView.OnItemSelectedListener{
 
     private static final int RC_SIGN_IN = 123;
     private MyViewModel viewModel;
-    private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
 
     @Override
@@ -47,39 +41,61 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        setSupportActionBar(binding.appBarMain.toolbar);
-        DrawerLayout drawer = binding.drawerLayout;
+        setSupportActionBar(binding.layoutMain.toolbar);
 
-        BottomNavigationView bottomNavView = findViewById(R.id.bottom_nav_view);
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.navigation_map_view, R.id.navigation_list_view, R.id.navigation_workmates_view)
-                .setOpenableLayout(drawer)
-                .build();
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
-        NavigationUI.setupWithNavController(bottomNavView, navController);
+        initViewPager();
+        binding.layoutMain.bottomNavView.setOnItemSelectedListener(this);
 
         binding.navView.setNavigationItemSelectedListener(this);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this,
+                binding.drawerLayout,
+                binding.layoutMain.toolbar,
+                R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close);
+        binding.drawerLayout.addDrawerListener(toggle);
+        toggle.setDrawerIndicatorEnabled(true);
+        toggle.syncState();
 
         if (!viewModel.isCurrentUserLogged()) {
             startSignInActivity();
         }
     }
 
+    private void initViewPager() {
+        binding.layoutMain.viewpager.setAdapter(new ViewPagerAdapter(this));
+        binding.layoutMain.viewpager.setUserInputEnabled(false);
+        binding.layoutMain.viewpager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                switch (position) {
+                    case 0:
+                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_map_view).setChecked(true);
+                        break;
+                    case 1:
+                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_list_view).setChecked(true);
+                        break;
+                    case 2:
+                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_workmates_view).setChecked(true);
+                        break;
+                }
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+            }
+        });
+    }
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
-    }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
-                || super.onSupportNavigateUp();
     }
 
     private void startSignInActivity() {
@@ -139,6 +155,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             viewModel.signOut(this);
             binding.drawerLayout.closeDrawer(GravityCompat.START);
             startSignInActivity();
+        } else if (item.getItemId() == R.id.navigation_map_view) {
+            binding.layoutMain.viewpager.setCurrentItem(0);
+        } else if (item.getItemId() == R.id.navigation_list_view) {
+            binding.layoutMain.viewpager.setCurrentItem(1);
+        } else if (item.getItemId() == R.id.navigation_workmates_view) {
+            binding.layoutMain.viewpager.setCurrentItem(2);
         }
         return false;
     }

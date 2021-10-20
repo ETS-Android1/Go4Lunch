@@ -1,4 +1,81 @@
 package com.fthiery.go4lunch.model;
 
+
+import android.location.Location;
+
+import com.google.android.gms.maps.model.LatLng;
+import com.google.maps.model.OpeningHours;
+
+
 public class Restaurant {
+    private String id;
+    private String name;
+    private double latitude;
+    private double longitude;
+    private String photo;
+    private String address;
+    private String phoneNumber;
+    private OpeningHours openingHours;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public LatLng getLatLng() {
+        return new LatLng(latitude,longitude);
+    }
+
+    public void setLocation(Location location) {
+        this.latitude = location.getLatitude();
+        this.longitude = location.getLongitude();
+    }
+
+    public void setLocation(double latitude, double longitude) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public String getPhoto() {
+        return photo;
+    }
+
+    public void setPhoto(String photo) {
+        this.photo = photo;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public OpeningHours getOpeningHours() {
+        return openingHours;
+    }
+
+    public void setOpeningHours(OpeningHours openingHours) {
+        this.openingHours = openingHours;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 }

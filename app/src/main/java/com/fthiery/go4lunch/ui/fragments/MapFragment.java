@@ -1,4 +1,4 @@
-package com.fthiery.go4lunch.ui.map;
+package com.fthiery.go4lunch.ui.fragments;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -15,6 +15,8 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.FragmentMapBinding;
+import com.fthiery.go4lunch.model.Restaurant;
+import com.fthiery.go4lunch.viewmodel.MyViewModel;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -23,10 +25,9 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
-import java.util.Objects;
+import java.util.List;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -36,7 +37,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private static final String TAG = MapFragment.class.getSimpleName();
     private SupportMapFragment supportMapFragment;
     private GoogleMap googleMap;
-    private MapViewModel mapViewModel;
+    private MyViewModel myViewModel;
     private FragmentMapBinding binding;
     private static final int RC_LOCATION = 100;
     private final LatLng defaultLocation = new LatLng(-33.8523341, 151.2106085);
@@ -47,18 +48,18 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private boolean locationPermissionGranted = false;
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        mapViewModel = new ViewModelProvider(this).get(MapViewModel.class);
+        myViewModel = new ViewModelProvider(this).get(MyViewModel.class);
 
         binding = FragmentMapBinding.inflate(inflater, container, false);
-        View root = binding.getRoot();
 
+        // Initialize GoogleMaps fragment
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         // Construct a FusedLocationProviderClient.
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getActivity());
 
-        return root;
+        return binding.getRoot();
     }
 
     @Override
@@ -66,10 +67,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap = gMap;
 
         setMyLocationEnabled();
-
-        googleMap.addMarker(new MarkerOptions()
-                .position(new LatLng(0, 0))
-                .title("Marker"));
     }
 
     @Override
@@ -85,7 +82,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private void setMyLocationEnabled() {
         if (!EasyPermissions.hasPermissions(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)) {
             locationPermissionGranted = false;
-            EasyPermissions.requestPermissions(this, getString(R.string.popup_title_permission_location_access), RC_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION);
+            EasyPermissions.requestPermissions(this, getString(R.string.user_location_permission_explanation), RC_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION);
         } else {
             locationPermissionGranted = true;
             getDeviceLocation();
@@ -109,6 +106,14 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         // Set the map's camera position to the current location of the device.
                         lastKnownLocation = task.getResult();
                         if (lastKnownLocation != null) {
+                            List<Restaurant> places = myViewModel.getRestaurantsAround(lastKnownLocation.getLatitude(),lastKnownLocation.getLongitude());
+
+                            for (Restaurant place : places) {
+                                googleMap.addMarker(new MarkerOptions()
+                                        .position(place.getLatLng())
+                                );
+                            }
+
                             googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                     new LatLng(lastKnownLocation.getLatitude(),
                                             lastKnownLocation.getLongitude()), DEFAULT_ZOOM));
@@ -122,7 +127,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                     }
                 });
             }
-        } catch (SecurityException e)  {
+        } catch (SecurityException e) {
             Log.e("Exception: %s", e.getMessage(), e);
         }
     }

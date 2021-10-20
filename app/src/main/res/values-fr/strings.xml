@@ -17,4 +17,13 @@
     <string name="list_view">Vue Liste</string>
     <string name="work_mates">Collègues</string>
     <string name="your_lunch">Votre déjeuner</string>
+    <string name="connection_succeed">Connexion réussie</string>
+    <string name="error_authentication_canceled">Authentification annulée</string>
+    <string name="error_no_internet">Pas de connexion internet</string>
+    <string name="error_unknown_error">Erreur inconnue</string>
+    <string name="user_location_permission_explanation">Cette application nécessite la permission de localisation pour fonctionner</string>
+    <string name="user_location_permission_not_granted">Vous n\'avez pas accordé les permissions.</string>
+    <string name="center_on_my_position">Centrer sur ma position</string>
+    <string name="location_permission_denied">Permission de localisation refusée</string>
+    <string name="permission_required_toast">Permission requise</string>
 </resources>
