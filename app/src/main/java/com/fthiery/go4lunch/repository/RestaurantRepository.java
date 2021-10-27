@@ -1,14 +1,28 @@
 package com.fthiery.go4lunch.repository;
 
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+
 import com.fthiery.go4lunch.model.Restaurant;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class RestaurantRepository {
 
     private static volatile RestaurantRepository instance;
+    FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     public static RestaurantRepository getInstance() {
         RestaurantRepository result = instance;
@@ -24,21 +38,40 @@ public class RestaurantRepository {
     }
 
     private CollectionReference getRestaurantsCollection() {
-        return FirebaseFirestore.getInstance().collection("restaurants");
+        return db.collection("restaurants");
     }
 
-    public void createRestaurant(Restaurant restaurant) {
-        Task<DocumentSnapshot> restaurantData = getRestaurant(restaurant.getId());
-        restaurantData.addOnSuccessListener(documentSnapshot -> {
-            getRestaurantsCollection().document(restaurant.getId()).set(restaurant);
+    private void listenToRestaurantsUpdates() {
+        getRestaurantsCollection().addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
+                List<Restaurant> restaurants = new ArrayList<>();
+                for (QueryDocumentSnapshot d : value) {
+
+                }
+            }
         });
     }
 
-    public Task<DocumentSnapshot> getRestaurant(String id) {
-        if (id != null) {
-            return getRestaurantsCollection().document(id).get();
+    public void createRestaurant(Restaurant restaurant) {
+        if (restaurant.getId() != null) {
+            Task<DocumentSnapshot> restaurantData = getRestaurantsCollection().document(restaurant.getId()).get();
+            restaurantData.addOnSuccessListener(documentSnapshot -> {
+                getRestaurantsCollection().document(restaurant.getId()).set(restaurant);
+            });
         } else {
-            return null;
+            Log.w("RestaurantRepository", "createRestaurant: Missing Id");
         }
     }
+//
+//    public Restaurant getRestaurant(String id) {
+//        getRestaurantsCollection().document(id).get()
+//                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+//                    @Override
+//                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+//                        Restaurant restaurant = documentSnapshot.toObject(Restaurant.class);
+//                        return restaurant;
+//                    }
+//                });
+//    }
 }

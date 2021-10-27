@@ -1,14 +1,21 @@
 package com.fthiery.go4lunch.ui;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
@@ -16,9 +23,18 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.ErrorCodes;
 import com.firebase.ui.auth.IdpResponse;
+import com.fthiery.go4lunch.BuildConfig;
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityMainBinding;
 import com.fthiery.go4lunch.viewmodel.MyViewModel;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
@@ -36,16 +52,27 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Initialize the ViewModel
         viewModel = new ViewModelProvider(this).get(MyViewModel.class);
 
+        // Initialize the Places SDK
+        Places.initialize(this, BuildConfig.MAPS_API_KEY);
+
+        // Create a new PlacesClient instance
+        viewModel.setPlacesClient(Places.createClient(this));
+
+        // Inflate the layout
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // Initialize the toolbar
         setSupportActionBar(binding.layoutMain.toolbar);
 
+        // Initialize the viewpager and bottom navigation
         initViewPager();
         binding.layoutMain.bottomNavView.setOnItemSelectedListener(this);
 
+        // Initialize the navigation drawer
         binding.navView.setNavigationItemSelectedListener(this);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this,
                 binding.drawerLayout,
@@ -56,6 +83,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         toggle.setDrawerIndicatorEnabled(true);
         toggle.syncState();
 
+        // Check if the user is logged and start the sign-in activity if needed
         if (!viewModel.isCurrentUserLogged()) {
             startSignInActivity();
         }
@@ -89,7 +117,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

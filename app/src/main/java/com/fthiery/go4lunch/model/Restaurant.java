@@ -2,11 +2,12 @@ package com.fthiery.go4lunch.model;
 
 
 import android.location.Location;
+import android.net.Uri;
 
 import androidx.annotation.Nullable;
 
 import com.google.android.gms.maps.model.LatLng;
-import com.google.maps.model.OpeningHours;
+import com.google.android.libraries.places.api.model.OpeningHours;
 
 
 public class Restaurant {
@@ -17,7 +18,19 @@ public class Restaurant {
     private String photo;
     private String address;
     private String phoneNumber;
+    private String websiteUrl;
     private OpeningHours openingHours;
+
+    public Restaurant() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;
@@ -29,6 +42,14 @@ public class Restaurant {
 
     public LatLng getLatLng() {
         return new LatLng(latitude,longitude);
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
     }
 
     public void setLocation(Location location) {
@@ -45,8 +66,8 @@ public class Restaurant {
         return photo;
     }
 
-    public void setPhoto(String photo) {
-        this.photo = photo;
+    public void setPhoto(Uri photo) {
+        if (photo != null) this.photo = photo.toString();
     }
 
     public String getAddress() {
@@ -73,12 +94,12 @@ public class Restaurant {
         this.openingHours = openingHours;
     }
 
-    public String getId() {
-        return id;
+    public String getWebsiteUrl() {
+        return websiteUrl;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setWebsiteUrl(Uri websiteUrl) {
+        if (websiteUrl != null) this.websiteUrl = websiteUrl.toString();
     }
 
     @Override
@@ -89,6 +110,9 @@ public class Restaurant {
 
         Restaurant other = (Restaurant) obj;
         return this.id.equals(other.id)
-                && this.name.equals(other.name);
+                && this.name.equals(other.name)
+                && this.address.equals(other.address)
+                && this.websiteUrl.equals(other.websiteUrl)
+                && this.photo.equals(other.photo);
     }
 }

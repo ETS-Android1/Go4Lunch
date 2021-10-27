@@ -1,8 +1,9 @@
 package com.fthiery.go4lunch.viewmodel;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.location.Location;
+import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -13,36 +14,52 @@ import com.fthiery.go4lunch.BuildConfig;
 import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
-import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
+import com.google.android.libraries.places.api.model.PhotoMetadata;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.FetchPhotoRequest;
+import com.google.android.libraries.places.api.net.FetchPlaceRequest;
+import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.google.maps.GeoApiContext;
+import com.google.maps.NearbySearchRequest;
+import com.google.maps.PendingResult;
 import com.google.maps.PlacesApi;
-import com.google.maps.errors.ApiException;
 import com.google.maps.model.LatLng;
 import com.google.maps.model.PlaceType;
 import com.google.maps.model.PlacesSearchResponse;
 import com.google.maps.model.PlacesSearchResult;
-import com.google.maps.model.RankBy;
 
-import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MyViewModel extends ViewModel {
     private final UserRepository userRepository;
     private final RestaurantRepository restaurantRepository;
     private final MutableLiveData<List<Restaurant>> restaurantsLiveData = new MutableLiveData<>();
+    private final GeoApiContext geoApiContext;
     private Location lastKnownLocation;
-    private boolean locationPermissionGranted;
-    private FusedLocationProviderClient fusedLocationProviderClient;
-    private GeoApiContext context;
+    private PlacesClient placesClient;
+    FirebaseStorage storage = FirebaseStorage.getInstance();
+
+    List<Place.Field> placeFields = Arrays.asList(
+            Place.Field.ADDRESS,
+            Place.Field.PHONE_NUMBER,
+            Place.Field.OPENING_HOURS,
+            Place.Field.WEBSITE_URI,
+            Place.Field.PHOTO_METADATAS);
 
     public MyViewModel() {
         super();
         userRepository = UserRepository.getInstance();
         restaurantRepository = RestaurantRepository.getInstance();
-        context = new GeoApiContext.Builder().apiKey(BuildConfig.MAPS_API_KEY).build();
+        geoApiContext = new GeoApiContext.Builder().apiKey(BuildConfig.MAPS_API_KEY).build();
     }
 
     @Nullable
@@ -50,11 +67,11 @@ public class MyViewModel extends ViewModel {
         return userRepository.getCurrentUser();
     }
 
-    public Boolean isCurrentUserLogged(){
+    public Boolean isCurrentUserLogged() {
         return (this.getCurrentUser() != null);
     }
 
-    public Task<Void> signOut(Context context){
+    public Task<Void> signOut(Context context) {
         return userRepository.signOut(context);
     }
 
@@ -62,59 +79,123 @@ public class MyViewModel extends ViewModel {
         return userRepository.deleteUser(context);
     }
 
-    public Location getDeviceLocation() {
+    public Location getLastKnownLocation() {
         return lastKnownLocation;
     }
 
-    @SuppressLint("MissingPermission")
-    private void updateDeviceLocation() {
-        try {
-            if (locationPermissionGranted) {
-                Task<Location> locationResult = fusedLocationProviderClient.getLastLocation();
-                locationResult.addOnSuccessListener(location -> lastKnownLocation = location);
-            }
-        } catch (SecurityException e) {
-            Log.e("Exception: %s", e.getMessage(), e);
-        }
+    public void setLocation(Location location) {
+        lastKnownLocation = location;
+        updateRestaurants();
     }
 
-    public List<Restaurant> getRestaurantsAround(double latitude, double longitude) {
-        LatLng location = new LatLng(latitude, longitude);
-        PlacesSearchResponse request = new PlacesSearchResponse();
-        List<Restaurant> restaurants = new ArrayList<>();
+    private void updateRestaurants() {
+        LatLng location = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
 
-        try {
-            request = PlacesApi.nearbySearchQuery(context, location)
-                    .radius(1500)
-                    .type(PlaceType.RESTAURANT)
-                    .await();
-        } catch (ApiException | IOException | InterruptedException e) {
-            e.printStackTrace();
-        } finally {
-            if (request.results != null) {
-                for (PlacesSearchResult result : request.results) {
+        NearbySearchRequest request = PlacesApi.nearbySearchQuery(geoApiContext, location).radius(1500).type(PlaceType.RESTAURANT);
+        request.setCallback(new PendingResult.Callback<PlacesSearchResponse>() {
+            @Override
+            public void onResult(PlacesSearchResponse response) {
+                List<Restaurant> restaurants = new ArrayList<>();
+                for (PlacesSearchResult result : response.results) {
                     Restaurant restaurant = new Restaurant();
 
                     restaurant.setId(result.placeId);
                     restaurant.setName(result.name);
 
-                    restaurant.setLocation(result.geometry.location.lat,result.geometry.location.lng);
+                    restaurant.setLocation(result.geometry.location.lat, result.geometry.location.lng);
 
-                    restaurant.setAddress(result.formattedAddress);
-//                    restaurant.setPhoto(result.photos[0].photoReference);
+                    getDetails(restaurant, result.placeId);
 
-//                    restaurantRepository.createRestaurant(restaurant);
                     restaurants.add(restaurant);
                 }
+                restaurantsLiveData.postValue(restaurants);
             }
+
+            @Override
+            public void onFailure(Throwable e) {
+
+            }
+        });
+    }
+
+    private void getDetails(Restaurant restaurant, String placeId) {
+        // Uses Place API to get the details of a restaurant
+        FetchPlaceRequest request = FetchPlaceRequest.newInstance(placeId, placeFields);
+
+        placesClient.fetchPlace(request)
+                .addOnSuccessListener(response -> {
+                    Place place = response.getPlace();
+
+                    restaurant.setAddress(place.getAddress());
+                    restaurant.setPhoneNumber(place.getPhoneNumber());
+                    restaurant.setOpeningHours(place.getOpeningHours());
+                    restaurant.setWebsiteUrl(place.getWebsiteUri());
+
+                    // Add the restaurant to Firebase database
+                    restaurantRepository.createRestaurant(restaurant);
+
+                    getPhoto(restaurant, place);
+
+                }).addOnFailureListener(this::onApiException);
+    }
+
+    private void getPhoto(Restaurant restaurant, Place place) {
+        // Get the photo metadata.
+        final List<PhotoMetadata> metadata = place.getPhotoMetadatas();
+        if (metadata == null || metadata.isEmpty()) {
+            Log.w("MyViewModel", "No photo metadata.");
+            return;
         }
+        final PhotoMetadata photoMetadata = metadata.get(0);
 
-        restaurantsLiveData.setValue(restaurants);
+        // Create a FetchPhotoRequest.
+        final FetchPhotoRequest photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                .setMaxWidth(1000) // Optional.
+                .setMaxHeight(800) // Optional.
+                .build();
 
-        return restaurants;
+        placesClient.fetchPhoto(photoRequest)
+                .addOnSuccessListener((fetchPhotoResponse) -> {
+                    // Fetch the bitmap from Place Api
+                    Bitmap bitmap = fetchPhotoResponse.getBitmap();
+                    // Create a storage reference for the bitmap
+                    StorageReference storageRef = storage.getReference().child("restaurant_pictures/" + place.getId() + ".jpg");
+
+                    // Compress the bitmap
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, baos);
+                    byte[] data = baos.toByteArray();
+
+                    // Upload the bitmap to Firebase Storage
+                    UploadTask uploadTask = storageRef.putBytes(data);
+                    Task<Uri> urlTask = uploadTask
+                            .continueWithTask(task -> storageRef.getDownloadUrl())
+                            .addOnCompleteListener(task -> {
+                                // Set restaurant photo uri
+                                restaurant.setPhoto(task.getResult());
+                                restaurantRepository.createRestaurant(restaurant);
+                            });
+
+                }).addOnFailureListener(this::onApiException);
+    }
+
+    private void onApiException(Exception exception) {
+        if (exception instanceof ApiException) {
+            final ApiException apiException = (ApiException) exception;
+            Log.e("MyViewModel", "Place not found: " + exception.getMessage());
+            final int statusCode = apiException.getStatusCode();
+        }
     }
 
     public MutableLiveData<List<Restaurant>> getRestaurantsLiveData() {
         return restaurantsLiveData;
+    }
+
+    public PlacesClient getPlacesClient() {
+        return placesClient;
+    }
+
+    public void setPlacesClient(PlacesClient placesClient) {
+        this.placesClient = placesClient;
     }
 }

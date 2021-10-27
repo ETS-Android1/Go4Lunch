@@ -8,18 +8,23 @@
 
     <TextView
         android:id="@+id/restaurant_name"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toTopOf="parent"
+        android:ellipsize="end"
+        android:text="Name"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@+id/distance"
         app:layout_constraintStart_toStartOf="parent"
-        android:text="Name" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/restaurant_address"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:ellipsize="end"
         android:text="Address"
         app:layout_constraintBottom_toTopOf="@+id/open_till"
+        app:layout_constraintEnd_toStartOf="@+id/workmates"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/restaurant_name" />
 
@@ -28,6 +33,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Open till"
+        android:textStyle="italic"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -37,8 +43,7 @@
         android:layout_height="64dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:srcCompat="@tools:sample/avatars" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/distance"
@@ -46,6 +51,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:text="Distance"
+        android:textColor="@android:color/darker_gray"
         app:layout_constraintEnd_toStartOf="@+id/restaurant_photo"
         app:layout_constraintTop_toTopOf="@+id/restaurant_name" />
 
