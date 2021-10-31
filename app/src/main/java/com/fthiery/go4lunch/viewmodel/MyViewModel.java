@@ -14,7 +14,6 @@ import com.fthiery.go4lunch.BuildConfig;
 import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
-import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.model.PhotoMetadata;
 import com.google.android.libraries.places.api.model.Place;
@@ -45,7 +44,6 @@ public class MyViewModel extends ViewModel {
     private final MutableLiveData<List<Restaurant>> restaurantsLiveData = new MutableLiveData<>();
     private final GeoApiContext geoApiContext;
     private Location lastKnownLocation;
-    private PlacesClient placesClient;
     FirebaseStorage storage = FirebaseStorage.getInstance();
 
     List<Place.Field> placeFields = Arrays.asList(
@@ -132,7 +130,7 @@ public class MyViewModel extends ViewModel {
                     restaurant.setWebsiteUrl(place.getWebsiteUri());
 
                     // Add the restaurant to Firebase database
-                    restaurantRepository.createRestaurant(restaurant);
+                    restaurantRepository.addRestaurantToFirebase(restaurant);
 
                     getPhoto(restaurant, place);
 
@@ -173,29 +171,18 @@ public class MyViewModel extends ViewModel {
                             .addOnCompleteListener(task -> {
                                 // Set restaurant photo uri
                                 restaurant.setPhoto(task.getResult());
-                                restaurantRepository.createRestaurant(restaurant);
+                                restaurantRepository.addRestaurantToFirebase(restaurant);
                             });
 
                 }).addOnFailureListener(this::onApiException);
     }
 
-    private void onApiException(Exception exception) {
-        if (exception instanceof ApiException) {
-            final ApiException apiException = (ApiException) exception;
-            Log.e("MyViewModel", "Place not found: " + exception.getMessage());
-            final int statusCode = apiException.getStatusCode();
-        }
-    }
 
     public MutableLiveData<List<Restaurant>> getRestaurantsLiveData() {
         return restaurantsLiveData;
     }
 
-    public PlacesClient getPlacesClient() {
-        return placesClient;
-    }
-
     public void setPlacesClient(PlacesClient placesClient) {
-        this.placesClient = placesClient;
+        restaurantRepository.setPlacesClient(placesClient);
     }
 }

@@ -13,8 +13,7 @@ import com.google.android.libraries.places.api.model.OpeningHours;
 public class Restaurant {
     private String id;
     private String name;
-    private double latitude;
-    private double longitude;
+    private LatLng latlng;
     private String photo;
     private String address;
     private String phoneNumber;
@@ -22,6 +21,10 @@ public class Restaurant {
     private OpeningHours openingHours;
 
     public Restaurant() {
+    }
+
+    public Restaurant(String id) {
+        this.id = id;
     }
 
     public String getId() {
@@ -41,25 +44,27 @@ public class Restaurant {
     }
 
     public LatLng getLatLng() {
-        return new LatLng(latitude,longitude);
+        return latlng;
     }
 
     public double getLatitude() {
-        return latitude;
+        return latlng.latitude;
     }
 
     public double getLongitude() {
-        return longitude;
+        return latlng.longitude;
     }
 
     public void setLocation(Location location) {
-        this.latitude = location.getLatitude();
-        this.longitude = location.getLongitude();
+        this.latlng = new LatLng(location.getLatitude(),location.getLongitude());
     }
 
     public void setLocation(double latitude, double longitude) {
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.latlng = new LatLng(latitude,longitude);
+    }
+
+    public void setLocation(LatLng latLng) {
+        this.latlng = latLng;
     }
 
     public String getPhoto() {
