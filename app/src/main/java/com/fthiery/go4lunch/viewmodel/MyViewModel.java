@@ -41,9 +41,10 @@ import java.util.List;
 public class MyViewModel extends ViewModel {
     private final UserRepository userRepository;
     private final RestaurantRepository restaurantRepository;
-    private final MutableLiveData<List<Restaurant>> restaurantsLiveData = new MutableLiveData<>();
     private final GeoApiContext geoApiContext;
     private Location lastKnownLocation;
+    private MutableLiveData<List<Restaurant>> restaurants = new MutableLiveData<>();
+    private List<String> chosenRestaurants = new ArrayList<>();
     FirebaseStorage storage = FirebaseStorage.getInstance();
 
     List<Place.Field> placeFields = Arrays.asList(
@@ -55,8 +56,18 @@ public class MyViewModel extends ViewModel {
 
     public MyViewModel() {
         super();
+
         userRepository = UserRepository.getInstance();
+        userRepository.setListener(restaurants -> chosenRestaurants = restaurants);
+
         restaurantRepository = RestaurantRepository.getInstance();
+        restaurantRepository.setListener(restaurantList -> {
+            for (Restaurant restaurant : restaurantList) {
+                restaurant.setChosen(chosenRestaurants.contains(restaurant.getId()));
+            }
+            restaurants.postValue(restaurantList);
+        });
+
         geoApiContext = new GeoApiContext.Builder().apiKey(BuildConfig.MAPS_API_KEY).build();
     }
 
@@ -88,101 +99,18 @@ public class MyViewModel extends ViewModel {
 
     private void updateRestaurants() {
         LatLng location = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
-
-        NearbySearchRequest request = PlacesApi.nearbySearchQuery(geoApiContext, location).radius(1500).type(PlaceType.RESTAURANT);
-        request.setCallback(new PendingResult.Callback<PlacesSearchResponse>() {
-            @Override
-            public void onResult(PlacesSearchResponse response) {
-                List<Restaurant> restaurants = new ArrayList<>();
-                for (PlacesSearchResult result : response.results) {
-                    Restaurant restaurant = new Restaurant();
-
-                    restaurant.setId(result.placeId);
-                    restaurant.setName(result.name);
-
-                    restaurant.setLocation(result.geometry.location.lat, result.geometry.location.lng);
-
-                    getDetails(restaurant, result.placeId);
-
-                    restaurants.add(restaurant);
-                }
-                restaurantsLiveData.postValue(restaurants);
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-
-            }
-        });
+        restaurantRepository.updateRestaurantsAround(location);
     }
-
-    private void getDetails(Restaurant restaurant, String placeId) {
-        // Uses Place API to get the details of a restaurant
-        FetchPlaceRequest request = FetchPlaceRequest.newInstance(placeId, placeFields);
-
-        placesClient.fetchPlace(request)
-                .addOnSuccessListener(response -> {
-                    Place place = response.getPlace();
-
-                    restaurant.setAddress(place.getAddress());
-                    restaurant.setPhoneNumber(place.getPhoneNumber());
-                    restaurant.setOpeningHours(place.getOpeningHours());
-                    restaurant.setWebsiteUrl(place.getWebsiteUri());
-
-                    // Add the restaurant to Firebase database
-                    restaurantRepository.addRestaurantToFirebase(restaurant);
-
-                    getPhoto(restaurant, place);
-
-                }).addOnFailureListener(this::onApiException);
-    }
-
-    private void getPhoto(Restaurant restaurant, Place place) {
-        // Get the photo metadata.
-        final List<PhotoMetadata> metadata = place.getPhotoMetadatas();
-        if (metadata == null || metadata.isEmpty()) {
-            Log.w("MyViewModel", "No photo metadata.");
-            return;
-        }
-        final PhotoMetadata photoMetadata = metadata.get(0);
-
-        // Create a FetchPhotoRequest.
-        final FetchPhotoRequest photoRequest = FetchPhotoRequest.builder(photoMetadata)
-                .setMaxWidth(1000) // Optional.
-                .setMaxHeight(800) // Optional.
-                .build();
-
-        placesClient.fetchPhoto(photoRequest)
-                .addOnSuccessListener((fetchPhotoResponse) -> {
-                    // Fetch the bitmap from Place Api
-                    Bitmap bitmap = fetchPhotoResponse.getBitmap();
-                    // Create a storage reference for the bitmap
-                    StorageReference storageRef = storage.getReference().child("restaurant_pictures/" + place.getId() + ".jpg");
-
-                    // Compress the bitmap
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, baos);
-                    byte[] data = baos.toByteArray();
-
-                    // Upload the bitmap to Firebase Storage
-                    UploadTask uploadTask = storageRef.putBytes(data);
-                    Task<Uri> urlTask = uploadTask
-                            .continueWithTask(task -> storageRef.getDownloadUrl())
-                            .addOnCompleteListener(task -> {
-                                // Set restaurant photo uri
-                                restaurant.setPhoto(task.getResult());
-                                restaurantRepository.addRestaurantToFirebase(restaurant);
-                            });
-
-                }).addOnFailureListener(this::onApiException);
-    }
-
 
     public MutableLiveData<List<Restaurant>> getRestaurantsLiveData() {
-        return restaurantsLiveData;
+        return restaurants;
     }
 
     public void setPlacesClient(PlacesClient placesClient) {
         restaurantRepository.setPlacesClient(placesClient);
+    }
+
+    public void createUser() {
+        userRepository.createUser();
     }
 }

@@ -154,7 +154,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             // SUCCESS
             if (resultCode == RESULT_OK) {
                 showSnackBar(getString(R.string.connection_succeed));
-                recreate();
+                viewModel.createUser();
+                //recreate();
             } else {
                 // ERRORS
                 if (response == null) {

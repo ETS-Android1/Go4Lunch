@@ -5,7 +5,6 @@ import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.lifecycle.MutableLiveData;
 
 import com.fthiery.go4lunch.BuildConfig;
 import com.fthiery.go4lunch.model.Restaurant;
@@ -45,14 +44,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RestaurantRepository {
 
+    public interface Listener {
+        void restaurantsUpdate(List<Restaurant> restaurantList);
+    }
+
     private static volatile RestaurantRepository instance;
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseStorage storage = FirebaseStorage.getInstance();
     private final GeoApiContext geoApiContext = new GeoApiContext.Builder().apiKey(BuildConfig.MAPS_API_KEY).build();
     private PlacesClient placesClient;
     private final List<String> ids = new ArrayList<>();
-    private final Map<String,Restaurant> restaurantMap = new ConcurrentHashMap<>();
-    private final MutableLiveData<List<Restaurant>> restaurants = new MutableLiveData<>();
+    private final Map<String, Restaurant> restaurantMap = new ConcurrentHashMap<>();
+    private Listener listener;
 
     List<Place.Field> placeFields = Arrays.asList(
             Place.Field.NAME,
@@ -65,10 +68,11 @@ public class RestaurantRepository {
 
     public static RestaurantRepository getInstance() {
         RestaurantRepository result = instance;
+
         if (result != null) {
             return result;
         }
-        synchronized(UserRepository.class) {
+        synchronized (UserRepository.class) {
             if (instance == null) {
                 instance = new RestaurantRepository();
             }
@@ -76,45 +80,88 @@ public class RestaurantRepository {
         }
     }
 
-    public MutableLiveData<List<Restaurant>> getRestaurants() {
-        return restaurants;
+    public void setListener(Listener listener) {
+        this.listener = listener;
     }
 
-    public void updateMap() {
+    public void updateRestaurantsAround(LatLng location) {
+
+        NearbySearchRequest request = PlacesApi.nearbySearchQuery(geoApiContext, location).rankby(RankBy.DISTANCE).type(PlaceType.RESTAURANT);
+
+        request.setCallback(new PendingResult.Callback<PlacesSearchResponse>() {
+            @Override
+            public void onResult(PlacesSearchResponse response) {
+
+                ids.clear();
+                for (PlacesSearchResult result : response.results) {
+                    ids.add(result.placeId);
+                }
+                updateHashMap();
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                // TODO: Manage failure to get the data
+            }
+        });
+    }
+
+    public void updateHashMap() {
         for (String id : ids) {
             getRestaurantsCollection().document(id).get().addOnSuccessListener(documentSnapshot -> {
                 // The restaurant exists in the database
-                Restaurant restaurant = documentSnapshot.toObject(Restaurant.class);
-                restaurantMap.put(id,restaurant);
-            }).addOnFailureListener(e -> {
-                // If the restaurant isn't in the database, fetch it from Place Api
-                FetchPlaceRequest request = FetchPlaceRequest.newInstance(id, placeFields);
-
-                placesClient.fetchPlace(request).addOnSuccessListener(response -> {
-                    Place place = response.getPlace();
-                    Restaurant restaurant = new Restaurant(id);
-
-                    restaurant.setName(place.getName());
-                    restaurant.setAddress(place.getAddress());
-                    restaurant.setLocation(place.getLatLng());
-                    restaurant.setPhoneNumber(place.getPhoneNumber());
-                    restaurant.setOpeningHours(place.getOpeningHours());
-                    restaurant.setWebsiteUrl(place.getWebsiteUri());
-
-                    getPhoto(restaurant,place);
-
-                    addRestaurantToFirebase(restaurant);
-                    restaurantMap.put(id,restaurant);
-                }).addOnFailureListener(this::onApiException);
-            });
+                if (documentSnapshot.exists()) {
+                    Restaurant restaurant = documentSnapshot.toObject(Restaurant.class);
+                    restaurantMap.put(id, restaurant);
+                    updateList();
+                } else {
+                    fetchDetailsFromPlaceApi(id);
+                }
+            }).addOnFailureListener(this::onApiException);;
         }
+    }
+
+    private void fetchDetailsFromPlaceApi(String id) {
+        FetchPlaceRequest request = FetchPlaceRequest.newInstance(id, placeFields);
+
+        placesClient.fetchPlace(request).addOnSuccessListener(response -> {
+            Place place = response.getPlace();
+            Restaurant restaurant = new Restaurant(id);
+
+            restaurant.setName(place.getName());
+            restaurant.setAddress(place.getAddress());
+            restaurant.setLocation(place.getLatLng());
+            restaurant.setPhoneNumber(place.getPhoneNumber());
+            if (place.getWebsiteUri() != null ) {
+                restaurant.setWebsiteUrl(place.getWebsiteUri().toString());
+            }
+
+            getPhoto(restaurant, place);
+
+            addRestaurantToFirebase(restaurant);
+            restaurantMap.put(id, restaurant);
+            updateList();
+
+        }).addOnFailureListener(this::onApiException);;
+    }
+
+    private void updateList() {
+        // TODO: Bad way of doing this, should keep the list in memory and only refresh the restaurant at position pos
+        List<Restaurant> restaurants = new ArrayList<>();
+        for (String id : ids) {
+            Restaurant r = restaurantMap.get(id);
+            if (r != null) {
+                restaurants.add(r);
+            }
+        }
+        listener.restaurantsUpdate(restaurants);
     }
 
     private void getPhoto(Restaurant restaurant, Place place) {
         // Get the photo metadata.
         final List<PhotoMetadata> metadata = place.getPhotoMetadatas();
         if (metadata == null || metadata.isEmpty()) {
-            Log.w("RestaurantRepository", "No photo metadata for "+place.getName());
+            Log.w("RestaurantRepository", "No photo metadata for " + place.getName());
             return;
         }
         final PhotoMetadata photoMetadata = metadata.get(0);
@@ -144,32 +191,11 @@ public class RestaurantRepository {
                             .addOnCompleteListener(task -> {
                                 // Set restaurant photo uri
                                 Uri uri = task.getResult();
-                                restaurant.setPhoto(uri);
+                                restaurant.setPhoto(uri.toString());
                                 addRestaurantToFirebase(restaurant);
                             });
 
                 }).addOnFailureListener(this::onApiException);
-    }
-
-    public void updateRestaurantsAround(LatLng location) {
-
-        NearbySearchRequest request = PlacesApi.nearbySearchQuery(geoApiContext, location).rankby(RankBy.DISTANCE).type(PlaceType.RESTAURANT);
-
-        request.setCallback(new PendingResult.Callback<PlacesSearchResponse>() {
-            @Override
-            public void onResult(PlacesSearchResponse response) {
-
-                ids.clear();
-                for (PlacesSearchResult result : response.results) {
-                    ids.add(result.placeId);
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                // TODO: Manage failure to get the data
-            }
-        });
     }
 
     private CollectionReference getRestaurantsCollection() {
@@ -206,18 +232,8 @@ public class RestaurantRepository {
             final int statusCode = apiException.getStatusCode();
         }
     }
+
     public void setPlacesClient(PlacesClient placesClient) {
         this.placesClient = placesClient;
     }
-//
-//    public Restaurant getRestaurant(String id) {
-//        getRestaurantsCollection().document(id).get()
-//                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-//                    @Override
-//                    public void onSuccess(DocumentSnapshot documentSnapshot) {
-//                        Restaurant restaurant = documentSnapshot.toObject(Restaurant.class);
-//                        return restaurant;
-//                    }
-//                });
-//    }
 }

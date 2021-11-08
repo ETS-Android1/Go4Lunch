@@ -4,23 +4,28 @@ package com.fthiery.go4lunch.model;
 import android.location.Location;
 import android.net.Uri;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.libraries.places.api.model.OpeningHours;
+import com.google.firebase.firestore.Exclude;
+import com.google.maps.android.clustering.ClusterItem;
 
 
-public class Restaurant {
+public class Restaurant implements ClusterItem {
     private String id;
     private String name;
-    private LatLng latlng;
-    private String photo;
+    private double latitude;
+    private double longitude;
+    @Nullable private String photo;
     private String address;
     private String phoneNumber;
-    private String websiteUrl;
-    private OpeningHours openingHours;
+    @Nullable private String websiteUrl;
+    @Exclude private boolean chosen;
 
     public Restaurant() {
+        chosen = false;
     }
 
     public Restaurant(String id) {
@@ -44,35 +49,38 @@ public class Restaurant {
     }
 
     public LatLng getLatLng() {
-        return latlng;
+        return new LatLng(latitude,longitude);
     }
 
     public double getLatitude() {
-        return latlng.latitude;
+        return latitude;
     }
 
     public double getLongitude() {
-        return latlng.longitude;
+        return longitude;
     }
 
     public void setLocation(Location location) {
-        this.latlng = new LatLng(location.getLatitude(),location.getLongitude());
+        latitude = location.getLatitude();
+        longitude = location.getLongitude();
     }
 
     public void setLocation(double latitude, double longitude) {
-        this.latlng = new LatLng(latitude,longitude);
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public void setLocation(LatLng latLng) {
-        this.latlng = latLng;
+        latitude = latLng.latitude;
+        longitude = latLng.longitude;
     }
 
     public String getPhoto() {
         return photo;
     }
 
-    public void setPhoto(Uri photo) {
-        if (photo != null) this.photo = photo.toString();
+    public void setPhoto(String photo) {
+        this.photo = photo;
     }
 
     public String getAddress() {
@@ -91,20 +99,20 @@ public class Restaurant {
         this.phoneNumber = phoneNumber;
     }
 
-    public OpeningHours getOpeningHours() {
-        return openingHours;
-    }
-
-    public void setOpeningHours(OpeningHours openingHours) {
-        this.openingHours = openingHours;
-    }
-
     public String getWebsiteUrl() {
         return websiteUrl;
     }
 
-    public void setWebsiteUrl(Uri websiteUrl) {
-        if (websiteUrl != null) this.websiteUrl = websiteUrl.toString();
+    public void setWebsiteUrl(String websiteUrl) {
+        this.websiteUrl = websiteUrl;
+    }
+
+    public boolean isChosen() {
+        return chosen;
+    }
+
+    public void setChosen(boolean chosen) {
+        this.chosen = chosen;
     }
 
     @Override
@@ -117,7 +125,25 @@ public class Restaurant {
         return this.id.equals(other.id)
                 && this.name.equals(other.name)
                 && this.address.equals(other.address)
-                && this.websiteUrl.equals(other.websiteUrl)
-                && this.photo.equals(other.photo);
+                && (this.websiteUrl != null && this.websiteUrl.equals(other.websiteUrl))
+                && (this.photo != null && this.photo.equals(other.photo));
+    }
+
+    @NonNull
+    @Override
+    public LatLng getPosition() {
+        return new LatLng(latitude,longitude);
+    }
+
+    @Nullable
+    @Override
+    public String getTitle() {
+        return name;
+    }
+
+    @Nullable
+    @Override
+    public String getSnippet() {
+        return null;
     }
 }

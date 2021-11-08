@@ -2,7 +2,9 @@ package com.fthiery.go4lunch.ui.fragments;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,21 +29,28 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.clustering.Cluster;
+import com.google.maps.android.clustering.ClusterItem;
+import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.ClusterRenderer;
+import com.google.maps.android.clustering.view.DefaultClusterRenderer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-public class MapFragment extends Fragment implements OnMapReadyCallback, Observer<List<Restaurant>> {
+public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private MyViewModel myViewModel;
     private FragmentMapBinding binding;
     private GoogleMap googleMap;
+    private ClusterManager<Restaurant> clusterManager;
     private FusedLocationProviderClient fusedLocationClient;
-    private List<Marker> markers = new ArrayList<>();
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
@@ -66,7 +75,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, Observe
         // Initialize the location provider
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
-        myViewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), this);
+        myViewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), restaurantList -> {
+            // Clear markers
+            clusterManager.clearItems();
+            // Add new markers
+            clusterManager.addItems(restaurantList);
+        });
 
         return binding.getRoot();
     }
@@ -75,6 +89,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, Observe
     public void onMapReady(@NonNull GoogleMap gMap) {
         googleMap = gMap;
         googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), R.raw.style_json));
+
+        clusterManager = new ClusterManager<Restaurant>(requireContext(), googleMap);
+        clusterManager.setRenderer(new CustomClusterRenderer(requireContext(),googleMap,clusterManager));
+        googleMap.setOnCameraIdleListener(clusterManager);
+
         enableMyLocation();
         googleMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
             @Override
@@ -108,7 +127,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, Observe
                     myViewModel.setLocation(location);
 
                     googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                            new LatLng(location.getLatitude(),location.getLongitude()), 15));
+                            new LatLng(location.getLatitude(), location.getLongitude()), 15));
                 }
             });
         } else {
@@ -120,15 +139,23 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, Observe
         return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
-    @Override
-    public void onChanged(List<Restaurant> restaurants) {
-        // Clear markers
-        for (Marker marker : markers) {
-            marker.remove();
+    private class CustomClusterRenderer extends DefaultClusterRenderer<Restaurant> {
+        public CustomClusterRenderer(Context context, GoogleMap googleMap, ClusterManager<Restaurant> clusterManager) {
+            super(context,googleMap,clusterManager);
         }
-        // Add new markers
-        for (Restaurant restaurant : restaurants) {
-            markers.add(googleMap.addMarker(new MarkerOptions().position(restaurant.getLatLng()).title(restaurant.getName())));
+
+        @Override
+        protected int getColor(int clusterSize) {
+            return getResources().getColor(R.color.colorPrimary);
+        }
+
+        @Override
+        protected void onBeforeClusterItemRendered(Restaurant restaurant, MarkerOptions markerOptions) {
+            if (restaurant.isChosen()) {
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+            } else {
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker());
+            }
         }
     }
 }
