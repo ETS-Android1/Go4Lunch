@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
@@ -42,11 +42,24 @@
 
     <style name="NavigationView" parent="AppTheme">
         <item name="textAllCaps">true</item>
-        <item name="backgroundColor">@color/colorPrimary</item>
+        <item name="backgroundColor">@color/colorPrimaryDark</item>
         <item name="android:textColor">@android:color/white</item>
     </style>
 
     <style name="NavigationViewHeader" parent="ThemeOverlay.AppCompat.Dark">
         <item name="textAllCaps">false</item>
+    </style>
+
+    <style name="WorkmateDecided" parent="TextAppearance.MaterialComponents.Body2">
+    </style>
+
+    <style name="WorkmateUndecided" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textStyle">italic</item>
+        <item name="android:textColor">?android:attr/textColorTertiary</item>
+    </style>
+
+    <style name="DetailViewButtonBarButton" parent="Widget.MaterialComponents.Button.TextButton.Icon">
+        <item name="android:textColor">@color/detail_view_button</item>
+        <item name="android:padding">12dp</item>
     </style>
 </resources>

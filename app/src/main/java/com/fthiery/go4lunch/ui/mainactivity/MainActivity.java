@@ -1,21 +1,14 @@
-package com.fthiery.go4lunch.ui;
+package com.fthiery.go4lunch.ui.mainactivity;
 
-import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
@@ -26,15 +19,9 @@ import com.firebase.ui.auth.IdpResponse;
 import com.fthiery.go4lunch.BuildConfig;
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityMainBinding;
-import com.fthiery.go4lunch.viewmodel.MyViewModel;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.MapStyleOptions;
+import com.fthiery.go4lunch.ui.adapters.ViewPagerAdapter;
+import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.libraries.places.api.Places;
-import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
@@ -45,7 +32,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NavigationBarView.OnItemSelectedListener{
 
     private static final int RC_SIGN_IN = 123;
-    private MyViewModel viewModel;
+    private MainViewModel viewModel;
     private ActivityMainBinding binding;
 
     @Override
@@ -53,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
 
         // Initialize the ViewModel
-        viewModel = new ViewModelProvider(this).get(MyViewModel.class);
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
 
         // Initialize the Places SDK
         Places.initialize(this, BuildConfig.MAPS_API_KEY);

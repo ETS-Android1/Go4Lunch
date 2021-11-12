@@ -1,13 +1,14 @@
-package com.fthiery.go4lunch.ui;
+package com.fthiery.go4lunch.ui.adapters;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import com.fthiery.go4lunch.ui.fragments.ListFragment;
-import com.fthiery.go4lunch.ui.fragments.MapFragment;
-import com.fthiery.go4lunch.ui.fragments.WorkMatesFragment;
+import com.fthiery.go4lunch.ui.mainactivity.MapFragment;
+import com.fthiery.go4lunch.ui.mainactivity.RestaurantListFragment;
+import com.fthiery.go4lunch.ui.mainactivity.WorkmatesFragment;
+
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
 
@@ -22,9 +23,9 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
             case 0:
                 return new MapFragment();
             case 1:
-                return new ListFragment();
+                return new RestaurantListFragment();
             default:
-                return new WorkMatesFragment();
+                return new WorkmatesFragment();
         }
     }
 

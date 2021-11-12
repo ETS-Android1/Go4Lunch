@@ -4,8 +4,6 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
-
 import com.fthiery.go4lunch.BuildConfig;
 import com.fthiery.go4lunch.model.Restaurant;
 import com.google.android.gms.common.api.ApiException;
@@ -17,11 +15,8 @@ import com.google.android.libraries.places.api.net.FetchPlaceRequest;
 import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -46,6 +41,10 @@ public class RestaurantRepository {
 
     public interface Listener {
         void restaurantsUpdate(List<Restaurant> restaurantList);
+    }
+
+    public interface RestaurantListener {
+        void restaurantUpdate(Restaurant restaurant);
     }
 
     private static volatile RestaurantRepository instance;
@@ -84,6 +83,17 @@ public class RestaurantRepository {
         this.listener = listener;
     }
 
+    private CollectionReference getRestaurantsCollection() {
+        return db.collection("restaurants");
+    }
+
+    public ListenerRegistration addRestaurantListener(String restaurantId, RestaurantListener restaurantListener) {
+        return getRestaurantsCollection().document(restaurantId).addSnapshotListener((value, error) -> {
+            Restaurant restaurant = value != null ? value.toObject(Restaurant.class) : null;
+            restaurantListener.restaurantUpdate(restaurant);
+        });
+    }
+
     public void updateRestaurantsAround(LatLng location) {
 
         NearbySearchRequest request = PlacesApi.nearbySearchQuery(geoApiContext, location).rankby(RankBy.DISTANCE).type(PlaceType.RESTAURANT);
@@ -108,7 +118,7 @@ public class RestaurantRepository {
 
     public void updateHashMap() {
         for (String id : ids) {
-            getRestaurantsCollection().document(id).get().addOnSuccessListener(documentSnapshot -> {
+            getRestaurantsCollection().document(id).get().addOnSuccessListener((DocumentSnapshot documentSnapshot) -> {
                 // The restaurant exists in the database
                 if (documentSnapshot.exists()) {
                     Restaurant restaurant = documentSnapshot.toObject(Restaurant.class);
@@ -117,7 +127,7 @@ public class RestaurantRepository {
                 } else {
                     fetchDetailsFromPlaceApi(id);
                 }
-            }).addOnFailureListener(this::onApiException);;
+            }).addOnFailureListener(this::onApiException);
         }
     }
 
@@ -132,7 +142,7 @@ public class RestaurantRepository {
             restaurant.setAddress(place.getAddress());
             restaurant.setLocation(place.getLatLng());
             restaurant.setPhoneNumber(place.getPhoneNumber());
-            if (place.getWebsiteUri() != null ) {
+            if (place.getWebsiteUri() != null) {
                 restaurant.setWebsiteUrl(place.getWebsiteUri().toString());
             }
 
@@ -142,7 +152,7 @@ public class RestaurantRepository {
             restaurantMap.put(id, restaurant);
             updateList();
 
-        }).addOnFailureListener(this::onApiException);;
+        }).addOnFailureListener(this::onApiException);
     }
 
     private void updateList() {
@@ -177,7 +187,7 @@ public class RestaurantRepository {
                     // Fetch the bitmap from Place Api
                     Bitmap bitmap = response.getBitmap();
                     // Create a storage reference for the bitmap
-                    StorageReference storageRef = storage.getReference().child("restaurant_pictures/" + place.getId() + ".jpg");
+                    StorageReference storageRef = storage.getReference().child("restaurant_pictures/" + restaurant.getId() + ".jpg");
 
                     // Compress the bitmap
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -193,33 +203,17 @@ public class RestaurantRepository {
                                 Uri uri = task.getResult();
                                 restaurant.setPhoto(uri.toString());
                                 addRestaurantToFirebase(restaurant);
+                                restaurantMap.put(restaurant.getId(), restaurant);
+                                updateList();
                             });
 
                 }).addOnFailureListener(this::onApiException);
     }
 
-    private CollectionReference getRestaurantsCollection() {
-        return db.collection("restaurants");
-    }
-
-    private void listenToRestaurantsUpdates() {
-        getRestaurantsCollection().addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                List<Restaurant> restaurants = new ArrayList<>();
-                for (QueryDocumentSnapshot d : value) {
-
-                }
-            }
-        });
-    }
-
     public void addRestaurantToFirebase(Restaurant restaurant) {
         if (restaurant.getId() != null) {
             Task<DocumentSnapshot> restaurantData = getRestaurantsCollection().document(restaurant.getId()).get();
-            restaurantData.addOnSuccessListener(documentSnapshot -> {
-                getRestaurantsCollection().document(restaurant.getId()).set(restaurant);
-            });
+            restaurantData.addOnSuccessListener(documentSnapshot -> getRestaurantsCollection().document(restaurant.getId()).set(restaurant));
         } else {
             Log.w("RestaurantRepository", "createRestaurant: Missing Id");
         }

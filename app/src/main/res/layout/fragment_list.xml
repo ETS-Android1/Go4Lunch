@@ -4,12 +4,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.fragments.ListFragment">
+    tools:context=".ui.mainactivity.fragments.RestaurantListFragment">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/restaurants_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:listitem="@layout/restaurant_view"
-        tools:itemCount="8"/>
+        tools:itemCount="8" />
 </androidx.constraintlayout.widget.ConstraintLayout>

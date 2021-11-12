@@ -1,74 +1,61 @@
 package com.fthiery.go4lunch.viewmodel;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.location.Location;
-import android.net.Uri;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.fthiery.go4lunch.BuildConfig;
 import com.fthiery.go4lunch.model.Restaurant;
+import com.fthiery.go4lunch.model.User;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
 import com.google.android.gms.tasks.Task;
-import com.google.android.libraries.places.api.model.PhotoMetadata;
-import com.google.android.libraries.places.api.model.Place;
-import com.google.android.libraries.places.api.net.FetchPhotoRequest;
-import com.google.android.libraries.places.api.net.FetchPlaceRequest;
 import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
-import com.google.maps.GeoApiContext;
-import com.google.maps.NearbySearchRequest;
-import com.google.maps.PendingResult;
-import com.google.maps.PlacesApi;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.maps.model.LatLng;
-import com.google.maps.model.PlaceType;
-import com.google.maps.model.PlacesSearchResponse;
-import com.google.maps.model.PlacesSearchResult;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-public class MyViewModel extends ViewModel {
+public class MainViewModel extends ViewModel {
     private final UserRepository userRepository;
+    private final ListenerRegistration userRegistration;
     private final RestaurantRepository restaurantRepository;
-    private final GeoApiContext geoApiContext;
     private Location lastKnownLocation;
-    private MutableLiveData<List<Restaurant>> restaurants = new MutableLiveData<>();
-    private List<String> chosenRestaurants = new ArrayList<>();
-    FirebaseStorage storage = FirebaseStorage.getInstance();
+    private final MutableLiveData<List<Restaurant>> restaurants = new MutableLiveData<>();
+    private final MutableLiveData<List<User>> workmates = new MutableLiveData<>();
+    private final List<String> chosenRestaurants = new ArrayList<>();
 
-    List<Place.Field> placeFields = Arrays.asList(
-            Place.Field.ADDRESS,
-            Place.Field.PHONE_NUMBER,
-            Place.Field.OPENING_HOURS,
-            Place.Field.WEBSITE_URI,
-            Place.Field.PHOTO_METADATAS);
-
-    public MyViewModel() {
+    public MainViewModel() {
         super();
 
         userRepository = UserRepository.getInstance();
-        userRepository.setListener(restaurants -> chosenRestaurants = restaurants);
+        // When Users are modified, update the chosen restaurants list
+        userRegistration = userRepository.setListener((List<User> users) -> {
+            // When Users are modified, update the chosen restaurants list
+            chosenRestaurants.clear();
+            for (User user : users) {
+                if (user.getChosenRestaurantId() != null) {
+                    chosenRestaurants.add(user.getChosenRestaurantId());
+                }
+            }
+            workmates.postValue(users);
+        });
 
         restaurantRepository = RestaurantRepository.getInstance();
         restaurantRepository.setListener(restaurantList -> {
+            // When Restaurants are modified, update chosen status
+            // TODO : Not a very good way to do it, maybe should use a Map<User,Restaurant>
             for (Restaurant restaurant : restaurantList) {
                 restaurant.setChosen(chosenRestaurants.contains(restaurant.getId()));
             }
             restaurants.postValue(restaurantList);
         });
 
-        geoApiContext = new GeoApiContext.Builder().apiKey(BuildConfig.MAPS_API_KEY).build();
     }
 
     @Nullable
@@ -106,6 +93,10 @@ public class MyViewModel extends ViewModel {
         return restaurants;
     }
 
+    public LiveData<List<User>> getWorkmatesLiveData() {
+        return workmates;
+    }
+
     public void setPlacesClient(PlacesClient placesClient) {
         restaurantRepository.setPlacesClient(placesClient);
     }
@@ -113,4 +104,5 @@ public class MyViewModel extends ViewModel {
     public void createUser() {
         userRepository.createUser();
     }
+
 }

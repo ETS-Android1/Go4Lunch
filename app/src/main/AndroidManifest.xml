@@ -20,7 +20,7 @@
             android:value="${MAPS_API_KEY}" />
 
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.mainactivity.MainActivity"
             android:exported="true"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -31,9 +31,24 @@
         </activity>
 
         <activity
-            android:name=".ui.RestaurantDetailActivity"
+            android:name=".ui.detailactivity.RestaurantDetailActivity"
             android:exported="false"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:theme="@style/AppTheme.NoActionBar" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.mainactivity.MainActivity" />
+        </activity>
     </application>
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel"/>
+        </intent>
+    </queries>
 </manifest>

@@ -1,10 +1,10 @@
-package com.fthiery.go4lunch.ui.fragments;
+package com.fthiery.go4lunch.ui.mainactivity;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,13 +16,13 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.FragmentMapBinding;
 import com.fthiery.go4lunch.model.Restaurant;
-import com.fthiery.go4lunch.viewmodel.MyViewModel;
+import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
+import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -30,23 +30,21 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
-import com.google.maps.android.clustering.view.ClusterRenderer;
 import com.google.maps.android.clustering.view.DefaultClusterRenderer;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
-    private MyViewModel myViewModel;
+    private MainViewModel myViewModel;
     private FragmentMapBinding binding;
     private GoogleMap googleMap;
     private ClusterManager<Restaurant> clusterManager;
@@ -63,7 +61,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Initialise the ViewModel
-        myViewModel = new ViewModelProvider(requireActivity()).get(MyViewModel.class);
+        myViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         // Inflate the fragment layout
         binding = FragmentMapBinding.inflate(inflater, container, false);
@@ -85,22 +83,44 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         return binding.getRoot();
     }
 
+    @SuppressLint("PotentialBehaviorOverride")
     @Override
     public void onMapReady(@NonNull GoogleMap gMap) {
         googleMap = gMap;
         googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), R.raw.style_json));
+        googleMap.setMinZoomPreference(8.0f);
+        googleMap.setMaxZoomPreference(20.0f);
 
+        // Initiate the Cluster Manager
         clusterManager = new ClusterManager<Restaurant>(requireContext(), googleMap);
         clusterManager.setRenderer(new CustomClusterRenderer(requireContext(),googleMap,clusterManager));
         googleMap.setOnCameraIdleListener(clusterManager);
+        googleMap.setOnMarkerClickListener(clusterManager);
 
-        enableMyLocation();
-        googleMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
-            @Override
-            public boolean onMyLocationButtonClick() {
-                updateLocation();
-                return false;
+        clusterManager.setOnClusterClickListener(cluster -> {
+            // When clicking on a cluster, zoom on it
+            LatLngBounds.Builder builder = LatLngBounds.builder();
+            for (ClusterItem item : cluster.getItems()) {
+                builder.include(item.getPosition());
             }
+            final LatLngBounds bounds = builder.build();
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 200));
+            return true;
+        });
+
+        clusterManager.setOnClusterItemClickListener(restaurant -> {
+            // When clicking on a marker, start DetailActivity
+            Intent detailActivity = new Intent(requireActivity(), RestaurantDetailActivity.class);
+            detailActivity.putExtra("Id", restaurant.getId());
+            requireActivity().startActivity(detailActivity);
+            return true;
+        });
+
+        // Enable the location component
+        enableMyLocation();
+        googleMap.setOnMyLocationButtonClickListener(() -> {
+            updateLocation();
+            return false;
         });
     }
 

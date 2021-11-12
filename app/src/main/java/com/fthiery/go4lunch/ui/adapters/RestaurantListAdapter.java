@@ -1,7 +1,7 @@
-package com.fthiery.go4lunch.ui.fragments;
+package com.fthiery.go4lunch.ui.adapters;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -10,16 +10,16 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.request.RequestOptions;
 import com.fthiery.go4lunch.databinding.RestaurantViewBinding;
 import com.fthiery.go4lunch.model.Restaurant;
+import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
 
 public class RestaurantListAdapter extends ListAdapter<Restaurant,RestaurantListAdapter.RestaurantViewHolder> {
 
     RestaurantViewBinding binding;
 
-    protected RestaurantListAdapter() {
+    public RestaurantListAdapter() {
         super(DIFF_CALLBACK);
     }
 
@@ -57,12 +57,19 @@ public class RestaurantListAdapter extends ListAdapter<Restaurant,RestaurantList
         }
 
         void bind(Restaurant restaurant) {
+
             itemBinding.restaurantName.setText(restaurant.getName());
             itemBinding.restaurantAddress.setText(restaurant.getAddress());
             Glide.with(itemBinding.getRoot())
                     .load(restaurant.getPhoto())
                     .apply(RequestOptions.centerCropTransform())
                     .into(itemBinding.restaurantPhoto);
+
+            itemView.setOnClickListener(view -> {
+                Intent detailActivity = new Intent(view.getContext(), RestaurantDetailActivity.class);
+                detailActivity.putExtra("Id", restaurant.getId());
+                view.getContext().startActivity(detailActivity);
+            });
         }
     }
 }

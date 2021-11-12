@@ -1,5 +1,7 @@
 package com.fthiery.go4lunch.model;
 
+import java.util.Objects;
+
 public class User {
     private String id;
     private String name;
@@ -45,6 +47,19 @@ public class User {
 
     public void setChosenRestaurantId(String chosenRestaurantId) {
         this.chosenRestaurantId = chosenRestaurantId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+
+        User user = (User) o;
+
+        if (!id.equals(user.id)) return false;
+        if (!Objects.equals(name, user.name)) return false;
+        if (!Objects.equals(photo, user.photo)) return false;
+        return Objects.equals(chosenRestaurantId, user.chosenRestaurantId);
     }
 
 }
