@@ -21,7 +21,6 @@ import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityMainBinding;
 import com.fthiery.go4lunch.ui.adapters.ViewPagerAdapter;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
-import com.google.android.libraries.places.api.Places;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
@@ -41,12 +40,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // Initialize the ViewModel
         viewModel = new ViewModelProvider(this).get(MainViewModel.class);
-
-        // Initialize the Places SDK
-        Places.initialize(this, BuildConfig.MAPS_API_KEY);
-
-        // Create a new PlacesClient instance
-        viewModel.setPlacesClient(Places.createClient(this));
 
         // Inflate the layout
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -178,5 +171,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             binding.layoutMain.viewpager.setCurrentItem(2);
         }
         return false;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        viewModel.stopListening();
     }
 }

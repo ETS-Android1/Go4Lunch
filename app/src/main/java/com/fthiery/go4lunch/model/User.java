@@ -1,5 +1,7 @@
 package com.fthiery.go4lunch.model;
 
+import com.google.firebase.firestore.Exclude;
+
 import java.util.Objects;
 
 public class User {
@@ -7,6 +9,7 @@ public class User {
     private String name;
     private String photo;
     private String chosenRestaurantId;
+    @Exclude private Restaurant chosenRestaurant;
 
     public User() {
     }
@@ -15,6 +18,14 @@ public class User {
         this.id = id;
         this.name = name;
         this.photo = photo;
+    }
+
+    public User(User that) {
+        this.id = that.id;
+        this.name = that.name;
+        this.photo = that.photo;
+        this.chosenRestaurantId = that.chosenRestaurantId;
+        this.chosenRestaurant = that.chosenRestaurant;
     }
 
     public String getId() {
@@ -47,6 +58,14 @@ public class User {
 
     public void setChosenRestaurantId(String chosenRestaurantId) {
         this.chosenRestaurantId = chosenRestaurantId;
+    }
+
+    public Restaurant getChosenRestaurant() {
+        return chosenRestaurant;
+    }
+
+    public void setChosenRestaurant(Restaurant chosenRestaurant) {
+        this.chosenRestaurant = chosenRestaurant;
     }
 
     @Override

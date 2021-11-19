@@ -12,50 +12,32 @@ import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.model.User;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
+import com.fthiery.go4lunch.utils.Callback;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
-import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.maps.model.LatLng;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainViewModel extends ViewModel {
+
     private final UserRepository userRepository;
-    private final ListenerRegistration userRegistration;
     private final RestaurantRepository restaurantRepository;
-    private Location lastKnownLocation;
-    private final MutableLiveData<List<Restaurant>> restaurants = new MutableLiveData<>();
-    private final MutableLiveData<List<User>> workmates = new MutableLiveData<>();
-    private final List<String> chosenRestaurants = new ArrayList<>();
+    private final MutableLiveData<List<Restaurant>> restaurantsLiveData = new MutableLiveData<>();
+    private final Map<String, ListenerRegistration> registrations = new ConcurrentHashMap<>();
+    private ListenerRegistration listener;
+    private final List<Callback<LatLng>> locationListeners = new ArrayList<>();
+    private LatLng location;
 
     public MainViewModel() {
         super();
-
         userRepository = UserRepository.getInstance();
-        // When Users are modified, update the chosen restaurants list
-        userRegistration = userRepository.setListener((List<User> users) -> {
-            // When Users are modified, update the chosen restaurants list
-            chosenRestaurants.clear();
-            for (User user : users) {
-                if (user.getChosenRestaurantId() != null) {
-                    chosenRestaurants.add(user.getChosenRestaurantId());
-                }
-            }
-            workmates.postValue(users);
-        });
-
         restaurantRepository = RestaurantRepository.getInstance();
-        restaurantRepository.setListener(restaurantList -> {
-            // When Restaurants are modified, update chosen status
-            // TODO : Not a very good way to do it, maybe should use a Map<User,Restaurant>
-            for (Restaurant restaurant : restaurantList) {
-                restaurant.setChosen(chosenRestaurants.contains(restaurant.getId()));
-            }
-            restaurants.postValue(restaurantList);
-        });
-
     }
 
     @Nullable
@@ -75,34 +57,97 @@ public class MainViewModel extends ViewModel {
         return userRepository.deleteUser(context);
     }
 
-    public Location getLastKnownLocation() {
-        return lastKnownLocation;
+    public void setLocation(LatLng latlng, Callback<List<Restaurant>> onLoaded) {
+        location = latlng;
+        for (Callback<LatLng> locationListener : locationListeners) locationListener.onSuccess(latlng);
+        updateRestaurantsAround(latlng, onLoaded);
     }
 
-    public void setLocation(Location location) {
-        lastKnownLocation = location;
-        updateRestaurants();
+    public void setLocation(Location location, Callback<List<Restaurant>> onLoaded) {
+        setLocation(new LatLng(location.getLatitude(), location.getLongitude()), onLoaded);
     }
 
-    private void updateRestaurants() {
-        LatLng location = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
-        restaurantRepository.updateRestaurantsAround(location);
+    public void registerLocationUpdates(Callback<LatLng> callback) {
+        locationListeners.add(callback);
+        callback.onSuccess(location);
     }
 
-    public MutableLiveData<List<Restaurant>> getRestaurantsLiveData() {
-        return restaurants;
+    private void updateRestaurantsAround(LatLng location, Callback<List<Restaurant>> onLoaded) {
+        restaurantRepository.updateRestaurantsAround(location, 800, restaurantIds -> {
+            // When we get the restaurant list, request the list of users eating there
+
+            Map<String,Restaurant> restaurants = new ConcurrentHashMap<>();
+
+            // Clear registrations
+            ClearRegistrations();
+
+            for (String restaurantId : restaurantIds) {
+                restaurantRepository.getRestaurant(restaurantId, restaurant -> {
+
+                    updateRestaurantMap(restaurants, restaurant);
+                    if (restaurants.size() == restaurantIds.size()) {
+                        onLoaded.onSuccess(new ArrayList<>(restaurants.values()));
+                    }
+
+                    registerLocationUpdates(latLng -> {
+                        restaurant.updateDistanceTo(location);
+                        updateRestaurantMap(restaurants, restaurant);
+                    });
+
+                    registrations.put(
+                            restaurantId,
+                            userRepository.listenToUsersEatingAt(restaurantId, users -> {
+                                // When the users eating at the restaurantId are updated,
+                                // create a new instance of the restaurantId and of the list
+                                // to force the livedata listeners to update
+                                restaurant.setWorkmates(users.size());
+                                updateRestaurantMap(restaurants, restaurant);
+                            })
+                    );
+                });
+            }
+        });
+    }
+
+    private void updateRestaurantMap(Map<String, Restaurant> restaurants, Restaurant restaurant) {
+        restaurants.put(restaurant.getId(), new Restaurant(restaurant));
+        restaurantsLiveData.postValue(new ArrayList<>(restaurants.values()));
+    }
+
+    private void ClearRegistrations() {
+        for (ListenerRegistration registration : registrations.values()) {
+            if (registration != null) registration.remove();
+        }
+        registrations.clear();
+    }
+
+    public LiveData<List<Restaurant>> getRestaurantsLiveData() {
+        return restaurantsLiveData;
     }
 
     public LiveData<List<User>> getWorkmatesLiveData() {
-        return workmates;
-    }
+        MutableLiveData<List<User>> workmatesLiveData = new MutableLiveData<>();
+        if (listener != null) listener.remove();
 
-    public void setPlacesClient(PlacesClient placesClient) {
-        restaurantRepository.setPlacesClient(placesClient);
+        listener = userRepository.requestAllUsers(users -> {
+            for (User user : users) {
+                restaurantRepository.getRestaurant(user.getChosenRestaurantId(), chosenRestaurant -> {
+                    User newUser = new User(user);
+                    newUser.setChosenRestaurant(chosenRestaurant);
+                    users.set(users.indexOf(user), newUser);
+                    workmatesLiveData.postValue(users);
+                });
+            }
+        });
+        return workmatesLiveData;
     }
 
     public void createUser() {
         userRepository.createUser();
     }
 
+    public void stopListening() {
+        ClearRegistrations();
+        if (listener != null) listener.remove();
+    }
 }

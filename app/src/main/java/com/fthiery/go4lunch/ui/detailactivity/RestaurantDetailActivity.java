@@ -116,11 +116,8 @@ public class RestaurantDetailActivity extends AppCompatActivity {
         }
 
         // Floating Action Button to chose to eat at this restaurant
-        binding.restaurantDetailFab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                viewModel.toggleChosenRestaurant(restaurant.getId());
-            }
+        binding.restaurantDetailFab.setOnClickListener(view -> {
+            viewModel.toggleChosenRestaurant(restaurant.getId());
         });
 
     }

@@ -1,11 +1,14 @@
 package com.fthiery.go4lunch.repository;
 
 import android.content.Context;
+import android.telecom.Call;
 
 import androidx.annotation.Nullable;
 
 import com.firebase.ui.auth.AuthUI;
+import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.model.User;
+import com.fthiery.go4lunch.utils.Callback;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -24,15 +27,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class UserRepository {
 
-    public interface Listener {
-        void updateUsers(List<User> users);
-    }
-
     private static volatile UserRepository instance;
-    private Listener listener;
 
     public static UserRepository getInstance() {
         UserRepository result = instance;
@@ -47,21 +46,17 @@ public class UserRepository {
         }
     }
 
-    public ListenerRegistration setListener(Listener listener) {
-        this.listener = listener;
+    public ListenerRegistration requestAllUsers(Callback<List<User>> callback) {
         // Observes users and updates the list of chosen restaurants
         return getUsersCollection()
-                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                        List<User> users = new ArrayList<>();
-                        if (value != null) {
-                            for (QueryDocumentSnapshot doc : value) {
-                                users.add(doc.toObject(User.class));
-                            }
+                .addSnapshotListener((value, error) -> {
+                    List<User> users = new ArrayList<>();
+                    if (value != null) {
+                        for (QueryDocumentSnapshot doc : value) {
+                            users.add(doc.toObject(User.class));
                         }
-                        listener.updateUsers(users);
                     }
+                    callback.onSuccess(users);
                 });
     }
 
@@ -69,10 +64,10 @@ public class UserRepository {
      * Requests the users who have chosen to eat at restaurantId
      *
      * @param restaurantId
-     * @param listener     will get the data when ready
+     * @param callback     will get the data when ready
      * @return a registration allowing to remove it later
      */
-    public ListenerRegistration requestUsersEatingAt(String restaurantId, Listener listener) {
+    public ListenerRegistration listenToUsersEatingAt(String restaurantId, Callback<List<User>> callback) {
         return getUsersCollection()
                 .whereEqualTo("chosenRestaurantId", restaurantId)
                 .addSnapshotListener((value, error) -> {
@@ -82,7 +77,7 @@ public class UserRepository {
                             users.add(doc.toObject(User.class));
                         }
                     }
-                    listener.updateUsers(users);
+                    callback.onSuccess(users);
                 });
     }
 
@@ -95,6 +90,23 @@ public class UserRepository {
                     .set(data, SetOptions.merge())
                     .addOnSuccessListener(listener);
         }
+    }
+
+    public ListenerRegistration getChosenRestaurants(Callback<List<String>> callback) {
+        return getUsersCollection()
+                .whereNotEqualTo("chosenRestaurantId", null)
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
+                        List<String> chosenRestaurants = new ArrayList<>();
+                        if (value != null) {
+                            for (QueryDocumentSnapshot doc : value) {
+                                chosenRestaurants.add(doc.get("chosenRestaurantId",String.class));
+                            }
+                        }
+                        callback.onSuccess(chosenRestaurants);
+                    }
+                });
     }
 
     @Nullable

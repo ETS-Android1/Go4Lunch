@@ -60,7 +60,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:text="Workmates"
+        android:drawableStart="@drawable/ic_outline_person_24"
+        android:gravity="center"
         app:layout_constraintBottom_toBottomOf="@+id/restaurant_address"
         app:layout_constraintEnd_toStartOf="@+id/restaurant_photo" />
 

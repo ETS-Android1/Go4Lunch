@@ -50,4 +50,5 @@
     <string name="i_want_to_eat_there">I want to eat there</string>
     <string name="restaurant_address">Restaurant address</string>
     <string name="restaurant_name">Restaurant name</string>
+    <string name="refresh_restaurants">Refresh restaurants</string>
 </resources>

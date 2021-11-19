@@ -30,12 +30,11 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.view.DefaultClusterRenderer;
@@ -44,11 +43,12 @@ import java.util.List;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
-    private MainViewModel myViewModel;
+    private MainViewModel viewModel;
     private FragmentMapBinding binding;
     private GoogleMap googleMap;
     private ClusterManager<Restaurant> clusterManager;
     private FusedLocationProviderClient fusedLocationClient;
+
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
@@ -61,39 +61,55 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Initialise the ViewModel
-        myViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         // Inflate the fragment layout
         binding = FragmentMapBinding.inflate(inflater, container, false);
 
         // Initialize GoogleMaps fragment
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        if (mapFragment != null) mapFragment.getMapAsync(this);
 
         // Initialize the location provider
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
-        myViewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), restaurantList -> {
-            // Clear markers
-            clusterManager.clearItems();
-            // Add new markers
-            clusterManager.addItems(restaurantList);
-        });
+        viewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), this::updateMarkers);
 
         return binding.getRoot();
+    }
+
+    private void updateMarkers(List<Restaurant> restaurants) {
+        // Clear markers
+        clusterManager.clearItems();
+
+        // Add new markers
+        clusterManager.addItems(restaurants);
+        clusterManager.cluster();
+    }
+
+    private void centerCameraAround(List<Restaurant> restaurants) {
+        if (restaurants.size() >= 1) {
+            LatLngBounds.Builder builder = LatLngBounds.builder();
+            for (Restaurant restaurant : restaurants) {
+                builder.include(restaurant.getPosition());
+            }
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 200), 500, null);
+        }
     }
 
     @SuppressLint("PotentialBehaviorOverride")
     @Override
     public void onMapReady(@NonNull GoogleMap gMap) {
+        // Initialize the map
         googleMap = gMap;
         googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), R.raw.style_json));
-        googleMap.setMinZoomPreference(8.0f);
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(46.227638, 2.213749), 5.0f));
+        googleMap.setMinZoomPreference(5.0f);
         googleMap.setMaxZoomPreference(20.0f);
 
-        // Initiate the Cluster Manager
+        // Initialize the Cluster Manager
         clusterManager = new ClusterManager<Restaurant>(requireContext(), googleMap);
-        clusterManager.setRenderer(new CustomClusterRenderer(requireContext(),googleMap,clusterManager));
+        clusterManager.setRenderer(new CustomClusterRenderer(requireContext(), googleMap, clusterManager));
         googleMap.setOnCameraIdleListener(clusterManager);
         googleMap.setOnMarkerClickListener(clusterManager);
 
@@ -103,8 +119,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             for (ClusterItem item : cluster.getItems()) {
                 builder.include(item.getPosition());
             }
-            final LatLngBounds bounds = builder.build();
-            googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 200));
+            googleMap.animateCamera(
+                    CameraUpdateFactory.newLatLngBounds(builder.build(), 300),
+                    500,
+                    null);
+
             return true;
         });
 
@@ -114,6 +133,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             detailActivity.putExtra("Id", restaurant.getId());
             requireActivity().startActivity(detailActivity);
             return true;
+        });
+
+        binding.floatingActionButton.setVisibility(View.VISIBLE);
+        binding.floatingActionButton.setOnClickListener(view -> {
+            viewModel.setLocation(googleMap.getCameraPosition().target, this::centerCameraAround);
         });
 
         // Enable the location component
@@ -144,10 +168,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 // Got last known location. In some rare situations this can be null.
                 if (location != null) {
                     // Logic to handle location object
-                    myViewModel.setLocation(location);
-
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                            new LatLng(location.getLatitude(), location.getLongitude()), 15));
+                    viewModel.setLocation(location, this::centerCameraAround);
                 }
             });
         } else {
@@ -161,7 +182,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private class CustomClusterRenderer extends DefaultClusterRenderer<Restaurant> {
         public CustomClusterRenderer(Context context, GoogleMap googleMap, ClusterManager<Restaurant> clusterManager) {
-            super(context,googleMap,clusterManager);
+            super(context, googleMap, clusterManager);
         }
 
         @Override
@@ -170,8 +191,17 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
 
         @Override
-        protected void onBeforeClusterItemRendered(Restaurant restaurant, MarkerOptions markerOptions) {
-            if (restaurant.isChosen()) {
+        protected void onClusterItemUpdated(@NonNull Restaurant restaurant, @NonNull Marker marker) {
+            if (restaurant.getWorkmates() != 0) {
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+            } else {
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker());
+            }
+        }
+
+        @Override
+        protected void onBeforeClusterItemRendered(@NonNull Restaurant restaurant, @NonNull MarkerOptions markerOptions) {
+            if (restaurant.getWorkmates() != 0) {
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
             } else {
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker());
