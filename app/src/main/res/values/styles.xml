@@ -62,4 +62,16 @@
         <item name="android:textColor">@color/detail_view_button</item>
         <item name="android:padding">12dp</item>
     </style>
+
+    <style name="ClosingSoon" parent="AppTheme">
+        <item name="android:textColor">@color/colorClosingSoon</item>
+    </style>
+
+    <style name="Closed" parent="AppTheme">
+        <item name="android:textColor">@color/colorClosed</item>
+    </style>
+
+    <style name="Open" parent="AppTheme">
+        <item name="android:textColor">?android:attr/colorControlNormal</item>
+    </style>
 </resources>

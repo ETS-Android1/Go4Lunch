@@ -1,30 +1,18 @@
 
 package com.fthiery.go4lunch.model.placedetails;
 
+import com.google.firebase.firestore.Exclude;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.Calendar;
 import java.util.List;
 
 public class OpeningHours {
 
-    @SerializedName("open_now")
-    @Expose
-    private Boolean openNow;
     @SerializedName("periods")
     @Expose
     private List<Period> periods = null;
-    @SerializedName("weekday_text")
-    @Expose
-    private List<String> weekdayText = null;
-
-    public Boolean getOpenNow() {
-        return openNow;
-    }
-
-    public void setOpenNow(Boolean openNow) {
-        this.openNow = openNow;
-    }
 
     public List<Period> getPeriods() {
         return periods;
@@ -34,12 +22,24 @@ public class OpeningHours {
         this.periods = periods;
     }
 
-    public List<String> getWeekdayText() {
-        return weekdayText;
+    @Exclude public boolean isOpenAt(Calendar time) {
+        for (Period period : periods) {
+            if (period.isOpenAt(time)) return true;
+        }
+        return false;
     }
 
-    public void setWeekdayText(List<String> weekdayText) {
-        this.weekdayText = weekdayText;
-    }
+    @Exclude public Calendar nextTime(Calendar time) {
+        Calendar next = (Calendar) time.clone();
+        next.add(Calendar.YEAR,10);
 
+        for (Period period : periods) {
+            if (period.isOpenAt(time)) return period.getNextCloseTime(time);
+            else {
+                if (next.after(period.getNextOpenTime(time))) next = period.getNextOpenTime(time);
+            }
+        }
+
+        return next;
+    }
 }

@@ -1,30 +1,38 @@
 package com.fthiery.go4lunch.ui.adapters;
 
+import static com.fthiery.go4lunch.R.string;
+import static com.fthiery.go4lunch.R.style;
+import static java.text.DateFormat.SHORT;
+import static java.text.DateFormat.getTimeInstance;
+
 import android.content.Intent;
+import android.content.res.Resources;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.LiveData;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CenterCrop;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.bumptech.glide.request.RequestOptions;
+import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.RestaurantViewBinding;
 import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.maps.android.SphericalUtil;
+import com.fthiery.go4lunch.utils.WordUtils;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-public class RestaurantListAdapter extends ListAdapter<Restaurant,RestaurantListAdapter.RestaurantViewHolder> {
+public class RestaurantListAdapter extends ListAdapter<Restaurant, RestaurantListAdapter.RestaurantViewHolder> {
 
     public RestaurantListAdapter() {
         super(DIFF_CALLBACK);
@@ -70,8 +78,11 @@ public class RestaurantListAdapter extends ListAdapter<Restaurant,RestaurantList
 
         void bind(Restaurant restaurant) {
 
-            itemBinding.restaurantName.setText(restaurant.getName());
+            Resources res = itemView.getResources();
+
+            itemBinding.restaurantName.setText(WordUtils.capitalize(restaurant.getName()));
             itemBinding.restaurantAddress.setText(restaurant.getAddress());
+
             if (restaurant.getWorkmates() != 0) {
                 itemBinding.workmates.setVisibility(View.VISIBLE);
                 itemBinding.workmates.setText(String.format("(%s)", restaurant.getWorkmates()));
@@ -79,11 +90,56 @@ public class RestaurantListAdapter extends ListAdapter<Restaurant,RestaurantList
                 itemBinding.workmates.setVisibility(View.INVISIBLE);
             }
 
-            itemBinding.distance.setText(String.format("%s m",restaurant.getDistance()));
+            itemBinding.openTill.setTextAppearance(itemView.getContext(), R.style.Open);
+            if (restaurant.getOpeningHours() != null) {
+                if (restaurant.getOpeningHours().isOpenAt(Calendar.getInstance())) {
+                    // Restaurant is open
+                    Calendar closingTime = restaurant.getOpeningHours().nextTime(Calendar.getInstance());
+                    Calendar inOneHour = Calendar.getInstance();
+                    inOneHour.add(Calendar.HOUR, 1);
+
+                    if (inOneHour.after(closingTime)) {
+                        // Closing soon
+                        itemBinding.openTill.setText(res.getString(string.closingSoon));
+                        itemBinding.openTill.setTextAppearance(itemView.getContext(), style.ClosingSoon);
+                    } else {
+                        String hour = getTimeInstance(SHORT).format(closingTime.getTime());
+                        itemBinding.openTill.setText(String.format(res.getString(string.openUntil), hour));
+                    }
+                } else {
+                    // Restaurant is closed
+                    Calendar openingTime = restaurant.getOpeningHours().nextTime(Calendar.getInstance());
+                    String day = new SimpleDateFormat("EEEE", Locale.getDefault()).format(openingTime.getTime());
+                    String hour = getTimeInstance(SHORT).format(openingTime.getTime());
+
+                    Calendar now = Calendar.getInstance();
+
+                    Calendar tomorrow = Calendar.getInstance();
+                    tomorrow.add(Calendar.DAY_OF_YEAR, 1);
+
+                    itemBinding.openTill.setTextAppearance(itemView.getContext(), style.Closed);
+
+                    if (openingTime.get(Calendar.DAY_OF_YEAR) == now.get(Calendar.DAY_OF_YEAR)) {
+                        // Opens later today
+                        itemBinding.openTill.setText(String.format(res.getString(string.closedUntilHour), hour));
+                    } else if (openingTime.get(Calendar.DAY_OF_YEAR) == tomorrow.get(Calendar.DAY_OF_YEAR)) {
+                        // Opens tomorrow
+                        itemBinding.openTill.setText(String.format(res.getString(string.closedUntilTomorrow), hour));
+                    } else {
+                        // Opens another day
+                        itemBinding.openTill.setText(String.format(res.getString(string.closedUntilDayHour), day, hour));
+                    }
+                }
+            } else {
+                itemBinding.openTill.setText(string.unknownOpeningHours);
+            }
+
+            itemBinding.distance.setText(String.format("%s m", restaurant.getDistance()));
 
             Glide.with(itemBinding.getRoot())
-                    .load(restaurant.getPhoto())
-                    .apply(RequestOptions.centerCropTransform())
+                    .load(restaurant.getPhoto(300))
+                    .placeholder(R.drawable.restaurant_photo_placeholder)
+                    .transform(new CenterCrop(),new RoundedCorners(8))
                     .into(itemBinding.restaurantPhoto);
 
             itemView.setOnClickListener(view -> {

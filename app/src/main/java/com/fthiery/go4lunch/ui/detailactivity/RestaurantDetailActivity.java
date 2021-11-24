@@ -16,6 +16,7 @@ import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityDetailBinding;
 import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.ui.adapters.WorkmatesListAdapter;
+import com.fthiery.go4lunch.utils.WordUtils;
 import com.fthiery.go4lunch.viewmodel.DetailViewModel;
 
 public class RestaurantDetailActivity extends AppCompatActivity {
@@ -76,17 +77,15 @@ public class RestaurantDetailActivity extends AppCompatActivity {
     // Bind the restaurant data to the views
     private void bindRestaurant(Restaurant restaurant) {
 
-        binding.detailRestaurantPrimary.setText(restaurant.getName());
+        binding.detailRestaurantPrimary.setText(WordUtils.capitalize(restaurant.getName()));
         binding.detailRestaurantSecondary.setText(restaurant.getAddress());
 
         // Load the photo
-        if (restaurant.getPhoto() != null) {
-            Glide.with(binding.getRoot())
-                    .load(restaurant.getPhoto())
-                    .apply(RequestOptions.centerCropTransform())
-                    .placeholder(R.drawable.login_background_img)
-                    .into(binding.detailRestaurantPhoto);
-        }
+        Glide.with(binding.getRoot())
+                .load(restaurant.getPhoto(800))
+                .apply(RequestOptions.centerCropTransform())
+                .placeholder(R.drawable.login_background_img)
+                .into(binding.detailRestaurantPhoto);
 
         // Enable or disable the "Call" button
         Intent intentDial = new Intent(Intent.ACTION_DIAL);

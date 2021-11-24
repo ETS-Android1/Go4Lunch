@@ -4,45 +4,67 @@ package com.fthiery.go4lunch.model;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.fthiery.go4lunch.BuildConfig;
+import com.fthiery.go4lunch.model.placedetails.Geometry;
 import com.fthiery.go4lunch.model.placedetails.OpeningHours;
+import com.fthiery.go4lunch.model.placedetails.Photo;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.firebase.firestore.Exclude;
+import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import com.google.maps.android.SphericalUtil;
 import com.google.maps.android.clustering.ClusterItem;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 
 
 public class Restaurant implements ClusterItem {
 
     @SerializedName("place_id")
+    @Expose
     private String id;
 
+    @SerializedName("name")
+    @Expose
     private String name;
 
-    @SerializedName("geometry/location/lat")
-    private double latitude;
-    @SerializedName("geometry/location/lng")
-    private double longitude;
+    @SerializedName("photos")
+    @Expose
+    private List<Photo> photos = null;
 
-    @Nullable private String photo;
+    @SerializedName("formatted_address")
+    @Expose
     private String address;
+
+    @SerializedName("formatted_phone_number")
+    @Expose
     private String phoneNumber;
 
-    @SerializedName("url")
-    @Nullable private String websiteUrl;
+    @SerializedName("website")
+    @Expose
+    @Nullable
+    private String websiteUrl;
 
+    @SerializedName("opening_hours")
+    @Expose
     private OpeningHours openingHours;
+
+    @SerializedName("geometry")
+    @Expose
+    private Geometry geometry;
 
     /**
      * Number of workmates eating at this restaurant
      */
-    @Exclude private int workmates = 0;
-    @Exclude private int distance;
+    @Exclude
+    private int workmates = 0;
+    @Exclude
+    private int distance;
 
-    public Restaurant() {}
+    public Restaurant() {
+    }
 
     public Restaurant(String id) {
         this.id = id;
@@ -51,14 +73,14 @@ public class Restaurant implements ClusterItem {
     public Restaurant(Restaurant that) {
         this.id = that.id;
         this.name = that.name;
-        this.latitude = that.latitude;
-        this.longitude = that.longitude;
-        this.photo = that.photo;
         this.address = that.address;
         this.phoneNumber = that.phoneNumber;
         this.websiteUrl = that.websiteUrl;
         this.workmates = that.workmates;
         this.distance = that.distance;
+        this.openingHours = that.openingHours;
+        this.photos = that.photos;
+        this.geometry = that.geometry;
     }
 
     public String getId() {
@@ -78,21 +100,21 @@ public class Restaurant implements ClusterItem {
     }
 
     public void setPosition(LatLng latLng) {
-        this.latitude = latLng.latitude;
-        this.longitude = latLng.longitude;
+        this.geometry.setLocation(latLng);
     }
 
     public void setPosition(double latitude, double longitude) {
-        setPosition(new LatLng(latitude,longitude));
+        setPosition(new LatLng(latitude, longitude));
     }
 
-    @Nullable
-    public String getPhoto() {
-        return photo;
-    }
-
-    public void setPhoto(@Nullable String photo) {
-        this.photo = photo;
+    @Exclude
+    public String getPhoto(int maxSize) {
+        if (photos != null && photos.size() > 0) {
+            return "https://maps.googleapis.com/maps/api/place/photo?maxwidth=" + maxSize
+                    + "&maxheight=" + maxSize
+                    + "&photoreference=" + photos.get(0).getPhotoReference()
+                    + "&key=" + BuildConfig.MAPS_API_KEY;
+        } else return "";
     }
 
     public String getAddress() {
@@ -120,7 +142,8 @@ public class Restaurant implements ClusterItem {
         this.websiteUrl = websiteUrl;
     }
 
-    @Exclude public int getWorkmates() {
+    @Exclude
+    public int getWorkmates() {
         return workmates;
     }
 
@@ -137,26 +160,35 @@ public class Restaurant implements ClusterItem {
     }
 
     public void updateDistanceTo(LatLng position) {
-        this.distance = (int) SphericalUtil.computeDistanceBetween(getPosition(),position);
+        this.distance = (int) SphericalUtil.computeDistanceBetween(getPosition(), position);
     }
 
-    @Exclude public int getDistance() {
+    @Exclude
+    public int getDistance() {
         return distance;
+    }
+
+    public List<Photo> getPhotos() {
+        return photos;
+    }
+
+    public void setPhotos(List<Photo> photos) {
+        this.photos = photos;
+    }
+
+    public Geometry getGeometry() {
+        return geometry;
+    }
+
+    public void setGeometry(Geometry geometry) {
+        this.geometry = geometry;
     }
 
     @NonNull
     @Override
     @Exclude
     public LatLng getPosition() {
-        return new LatLng(latitude,longitude);
-    }
-
-    public double getLatitude() {
-        return latitude;
-    }
-
-    public double getLongitude() {
-        return longitude;
+        return geometry.getLatLng();
     }
 
     @Nullable
@@ -180,16 +212,16 @@ public class Restaurant implements ClusterItem {
 
         Restaurant that = (Restaurant) o;
 
-        if (Double.compare(that.latitude, latitude) != 0) return false;
-        if (Double.compare(that.longitude, longitude) != 0) return false;
         if (workmates != that.workmates) return false;
         if (distance != that.distance) return false;
         if (!id.equals(that.id)) return false;
+        if (!Objects.equals(photos, that.photos)) return false;
         if (!Objects.equals(name, that.name)) return false;
-        if (!Objects.equals(photo, that.photo)) return false;
         if (!Objects.equals(address, that.address)) return false;
         if (!Objects.equals(phoneNumber, that.phoneNumber)) return false;
-        return Objects.equals(websiteUrl, that.websiteUrl);
+        if (!Objects.equals(websiteUrl, that.websiteUrl)) return false;
+        if (!Objects.equals(openingHours, that.openingHours)) return false;
+        return Objects.equals(geometry, that.geometry);
     }
 
     public static class RestaurantDistanceComparator implements Comparator<Restaurant> {

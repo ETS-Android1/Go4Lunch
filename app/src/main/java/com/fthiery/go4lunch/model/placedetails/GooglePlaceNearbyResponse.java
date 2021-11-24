@@ -1,19 +1,19 @@
-
 package com.fthiery.go4lunch.model.placedetails;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class GooglePlaceDetails {
+public class GooglePlaceNearbyResponse {
 
     @SerializedName("html_attributions")
     @Expose
     private List<Object> htmlAttributions = null;
-    @SerializedName("result")
+    @SerializedName("results")
     @Expose
-    private Result result;
+    private List<NearbyResponse> results;
     @SerializedName("status")
     @Expose
     private String status;
@@ -26,12 +26,12 @@ public class GooglePlaceDetails {
         this.htmlAttributions = htmlAttributions;
     }
 
-    public Result getResult() {
-        return result;
+    public List<NearbyResponse> getResults() {
+        return results;
     }
 
-    public void setResult(Result result) {
-        this.result = result;
+    public void setResult(List<NearbyResponse> results) {
+        this.results = results;
     }
 
     public String getStatus() {
@@ -42,4 +42,25 @@ public class GooglePlaceDetails {
         this.status = status;
     }
 
+    public List<String> getList() {
+        List<String> list = new ArrayList<>();
+        for (NearbyResponse r : results) {
+            list.add(r.getId());
+        }
+        return list;
+    }
+}
+
+class NearbyResponse {
+    @SerializedName("place_id")
+    @Expose
+    private String id;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 }

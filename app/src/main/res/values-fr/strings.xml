@@ -35,4 +35,10 @@
     <string name="restaurant_address">Adresse du restaurant</string>
     <string name="restaurant_name">Nom du restaurant</string>
     <string name="refresh_restaurants">Rafraîchir les restaurants</string>
+    <string name="openUntil">Ouvert jusqu\'à %s</string>
+    <string name="closedUntilDayHour">Fermé jusqu\'à %s, %s</string>
+    <string name="closedUntilHour">Fermé jusqu\'à %s</string>
+    <string name="closedUntilTomorrow">Fermé jusqu\'à demain, %s</string>
+    <string name="closingSoon">Ferme bientôt</string>
+    <string name="unknownOpeningHours">Horaires d\'ouverture inconnus</string>
 </resources>
