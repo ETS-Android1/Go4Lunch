@@ -14,9 +14,9 @@ import com.fthiery.go4lunch.utils.RestaurantService;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.storage.FirebaseStorage;
 
 import java.util.List;
@@ -45,10 +45,31 @@ public class RestaurantRepository {
         }
     }
 
-    private CollectionReference getRestaurantsCollection() {
-        return db.collection("restaurants");
+    /**
+     * Start listening to Firebase updates to the restaurant
+     **/
+    public ListenerRegistration listenRestaurant(String restaurantId, Callback<Restaurant> callback) {
+
+        if (restaurantId == null || restaurantId.equals("")) {
+            callback.onSuccess(null);
+            return null;
+        }
+
+        return db.collection("restaurants")
+                .document(restaurantId)
+                .addSnapshotListener((document, error) -> {
+                    if (document != null && document.exists()) {
+                        Restaurant restaurant = document.toObject(Restaurant.class);
+                        callback.onSuccess(restaurant);
+                    } else {
+                        getRestaurantDetails(restaurantId, callback);
+                    }
+                });
     }
 
+    /**
+     * Try to get the restaurant from Firebase. On failure, fetch the details from Google Place API and add it to Firebase
+     **/
     public void getRestaurant(String restaurantId, Callback<Restaurant> callback) {
 
         if (restaurantId == null || restaurantId.equals("")) {
@@ -56,56 +77,102 @@ public class RestaurantRepository {
             return;
         }
 
-        getRestaurantsCollection().document(restaurantId).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
+        db.collection("restaurants")
+                .document(restaurantId)
+                .get()
+                .addOnSuccessListener(document -> {
+                    if (document.exists()) {
                         // The restaurant exists in firebase, fetch it, then add it to the map and return it
-                        Restaurant restaurant = documentSnapshot.toObject(Restaurant.class);
+                        Restaurant restaurant = document.toObject(Restaurant.class);
                         callback.onSuccess(restaurant);
                     } else {
-                        Call<GooglePlaceDetailResponse> call = service.getPlacesInfo(restaurantId);
-                        call.enqueue(new retrofit2.Callback<GooglePlaceDetailResponse>() {
-                            @Override
-                            public void onResponse(@NonNull Call<GooglePlaceDetailResponse> call, @NonNull Response<GooglePlaceDetailResponse> response) {
-                                if (response.body() != null) {
-                                    Restaurant restaurant = response.body().getResult();
-                                    addRestaurantToFirebase(restaurant);
-                                    callback.onSuccess(restaurant);
-                                }
-                            }
-
-                            @Override
-                            public void onFailure(@NonNull Call<GooglePlaceDetailResponse> call, Throwable t) {
-                                Log.e("RestaurantRepository", "Unable to get details: ", t);
-                            }
-                        });
+                        getRestaurantDetails(restaurantId, callback);
                     }
                 });
     }
 
-    public void updateRestaurantsAround(LatLng location, int radius, Callback<List<String>> callback) {
-        String latLng = location.latitude + "," + location.longitude;
+    /**
+     * Fetch place details from Google Place API using Retrofit
+     **/
+    private void getRestaurantDetails(String restaurantId, Callback<Restaurant> callback) {
+        Call<GooglePlaceDetailResponse> call = service.getPlacesInfo(restaurantId);
 
-        Call<GooglePlaceNearbyResponse> call = service.getNearbyPlaces(latLng, radius);
-        call.enqueue(new retrofit2.Callback<GooglePlaceNearbyResponse>() {
+        call.enqueue(new retrofit2.Callback<GooglePlaceDetailResponse>() {
             @Override
-            public void onResponse(@NonNull Call<GooglePlaceNearbyResponse> call, @NonNull Response<GooglePlaceNearbyResponse> response) {
+            public void onResponse(@NonNull Call<GooglePlaceDetailResponse> call, @NonNull Response<GooglePlaceDetailResponse> response) {
                 if (response.body() != null) {
-                    callback.onSuccess(response.body().getList());
+                    Restaurant restaurant = response.body().getResult();
+                    addRestaurantToFirebase(restaurant, callback);
                 }
             }
 
             @Override
-            public void onFailure(@NonNull Call<GooglePlaceNearbyResponse> call, Throwable t) {
-
+            public void onFailure(@NonNull Call<GooglePlaceDetailResponse> call, Throwable t) {
+                Log.e("RestaurantRepository", "Unable to get details: ", t);
             }
         });
     }
 
-    public void addRestaurantToFirebase(Restaurant restaurant) {
+    /**
+     * Get a list of restaurant ids from Google Place API using Retrofit
+     **/
+    public void updateRestaurantsAround(LatLng location, int radius, Callback<List<String>> callback) {
+        String latLng = location.latitude + "," + location.longitude;
+
+        Call<GooglePlaceNearbyResponse> call = service.getNearbyPlaces(latLng);
+        call.enqueue(new retrofit2.Callback<GooglePlaceNearbyResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<GooglePlaceNearbyResponse> call, @NonNull Response<GooglePlaceNearbyResponse> response) {
+                if (response.body() != null) {
+                    callback.onSuccess(response.body().getRestaurantIds());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<GooglePlaceNearbyResponse> call, @NonNull Throwable t) {
+            }
+        });
+    }
+
+    /**
+     * Get a list of restaurant ids corresponding to the keyword from Google Place API
+     **/
+    public void searchRestaurants(String keyword, LatLng location, Callback<List<String>> callback) {
+
+        String latLng = location.latitude + "," + location.longitude;
+        Call<GooglePlaceNearbyResponse> call;
+
+        if (keyword.equals("")) {
+            call = service.getNearbyPlaces(latLng);
+        } else {
+            call = service.searchPlaces(latLng, keyword);
+        }
+
+        call.enqueue(new retrofit2.Callback<GooglePlaceNearbyResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<GooglePlaceNearbyResponse> call, @NonNull Response<GooglePlaceNearbyResponse> response) {
+                if (response.body() != null) {
+                    callback.onSuccess(response.body().getRestaurantIds());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<GooglePlaceNearbyResponse> call, @NonNull Throwable t) {
+            }
+        });
+    }
+
+    /**
+     * Add or update the restaurant in Firebase
+     **/
+    public void addRestaurantToFirebase(Restaurant restaurant, Callback<Restaurant> callback) {
         if (restaurant.getId() != null) {
-            Task<DocumentSnapshot> restaurantData = getRestaurantsCollection().document(restaurant.getId()).get();
-            restaurantData.addOnSuccessListener(documentSnapshot -> getRestaurantsCollection().document(restaurant.getId()).set(restaurant));
+            db.collection("restaurants")
+                    .document(restaurant.getId())
+                    .set(restaurant)
+                    .addOnSuccessListener(unused -> {
+                        if (callback != null) callback.onSuccess(restaurant);
+                    });
         } else {
             Log.w("RestaurantRepository", "createRestaurant: Missing Id");
         }

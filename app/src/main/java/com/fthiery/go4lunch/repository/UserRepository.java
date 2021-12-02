@@ -60,6 +60,13 @@ public class UserRepository {
                 });
     }
 
+    public ListenerRegistration listenToNumberOfUsers(Callback<Integer> onUpdate) {
+        return getUsersCollection()
+                .addSnapshotListener((collection, error) -> {
+                    if (collection != null) onUpdate.onSuccess(collection.size());
+                });
+    }
+
     /**
      * Requests the users who have chosen to eat at restaurantId
      *

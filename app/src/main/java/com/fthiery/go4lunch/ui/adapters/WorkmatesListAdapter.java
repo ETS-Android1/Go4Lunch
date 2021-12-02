@@ -20,8 +20,6 @@ import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
 
 public class WorkmatesListAdapter extends ListAdapter<User, WorkmatesListAdapter.WorkmateViewHolder> {
 
-    private WorkmateViewBinding binding;
-
     public WorkmatesListAdapter() {
         super(DIFF_CALLBACK);
     }
@@ -29,7 +27,7 @@ public class WorkmatesListAdapter extends ListAdapter<User, WorkmatesListAdapter
     @NonNull
     @Override
     public WorkmateViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        binding = WorkmateViewBinding.inflate(LayoutInflater.from(parent.getContext()),parent,false);
+        WorkmateViewBinding binding = WorkmateViewBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
         return new WorkmateViewHolder(binding);
     }
 

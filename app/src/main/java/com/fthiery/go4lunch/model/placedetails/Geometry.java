@@ -9,9 +9,7 @@ import com.google.gson.annotations.SerializedName;
 
 public class Geometry {
 
-    @SerializedName("location")
-    @Expose
-    private Location location;
+    private Location location = new Location();
 
     public Location getLocation() {
         return location;

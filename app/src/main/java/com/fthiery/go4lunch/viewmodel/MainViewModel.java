@@ -19,26 +19,35 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainViewModel extends ViewModel {
 
     private final UserRepository userRepository;
     private final RestaurantRepository restaurantRepository;
     private final MutableLiveData<List<Restaurant>> restaurantsLiveData = new MutableLiveData<>();
-    private final Map<String, ListenerRegistration> registrations = new ConcurrentHashMap<>();
-    private ListenerRegistration listener;
+    private final Map<String, Restaurant> restaurants = new ConcurrentHashMap<>();
+    private final List<ListenerRegistration> listeners = new ArrayList<>();
     private final List<Callback<LatLng>> locationListeners = new ArrayList<>();
+    private int numberOfUsers = 1;
+    private ListenerRegistration usersListener;
+    private final ListenerRegistration numberListener;
     private LatLng location;
 
     public MainViewModel() {
         super();
         userRepository = UserRepository.getInstance();
         restaurantRepository = RestaurantRepository.getInstance();
+        numberListener = userRepository.listenToNumberOfUsers(this::updateRatings);
+    }
+
+    private void updateRatings(Integer n) {
+        numberOfUsers = n;
+        for (Restaurant restaurant : restaurants.values()) {
+            restaurant.updateRating(numberOfUsers);
+        }
     }
 
     @Nullable
@@ -60,8 +69,9 @@ public class MainViewModel extends ViewModel {
 
     public void setLocation(LatLng latlng, Callback<List<Restaurant>> onLoaded) {
         location = latlng;
-        for (Callback<LatLng> locationListener : locationListeners) locationListener.onSuccess(latlng);
-        updateRestaurantsAround(latlng, onLoaded);
+        for (Callback<LatLng> locationListener : locationListeners)
+            locationListener.onSuccess(latlng);
+        searchRestaurants("", onLoaded);
     }
 
     public void setLocation(Location location, Callback<List<Restaurant>> onLoaded) {
@@ -73,53 +83,57 @@ public class MainViewModel extends ViewModel {
         callback.onSuccess(location);
     }
 
-    private void updateRestaurantsAround(LatLng location, Callback<List<Restaurant>> onLoaded) {
-        restaurantRepository.updateRestaurantsAround(location, 800, restaurantIds -> {
-            // When we get the restaurant list, request the list of users eating there
+    public void searchRestaurants(String query, Callback<List<Restaurant>> onLoaded) {
 
-            Map<String,Restaurant> restaurants = new ConcurrentHashMap<>();
+        restaurantRepository.searchRestaurants(query, location, restaurantIds -> {
+            // When we get the restaurant list, request the list of users eating there
+            restaurants.clear();
 
             // Clear registrations
             ClearRegistrations();
 
-            for (String restaurantId : restaurantIds) {
-                restaurantRepository.getRestaurant(restaurantId, restaurant -> {
+            if (restaurantIds.size() == 0) {
+                restaurantsLiveData.postValue(new ArrayList<>(restaurants.values()));
+            }
 
-                    updateRestaurantMap(restaurants, restaurant);
+            for (String restaurantId : restaurantIds) {
+                // Start listening to updates to this restaurant
+                listeners.add(restaurantRepository.listenRestaurant(restaurantId, restaurant -> {
+
+                    // Add the restaurant to the HashMap and update the LiveData
+                    updateRestaurantMap(restaurant);
+
                     if (restaurants.size() == restaurantIds.size()) {
                         onLoaded.onSuccess(new ArrayList<>(restaurants.values()));
                     }
 
+                    // Update the distance
                     registerLocationUpdates(latLng -> {
                         restaurant.updateDistanceTo(location);
-                        updateRestaurantMap(restaurants, restaurant);
+                        updateRestaurantMap(restaurant);
                     });
 
-                    registrations.put(
-                            restaurantId,
+                    // Update the rating
+                    restaurant.updateRating(numberOfUsers);
+
+                    // Listen to updates to the list of users eating at this restaurant
+                    listeners.add(
                             userRepository.listenToUsersEatingAt(restaurantId, users -> {
                                 // When the users eating at the restaurantId are updated,
                                 // create a new instance of the restaurantId and of the list
                                 // to force the livedata listeners to update
                                 restaurant.setWorkmates(users.size());
-                                updateRestaurantMap(restaurants, restaurant);
+                                updateRestaurantMap(restaurant);
                             })
                     );
-                });
+                }));
             }
         });
     }
 
-    private void updateRestaurantMap(Map<String, Restaurant> restaurants, Restaurant restaurant) {
+    private void updateRestaurantMap(Restaurant restaurant) {
         restaurants.put(restaurant.getId(), new Restaurant(restaurant));
         restaurantsLiveData.postValue(new ArrayList<>(restaurants.values()));
-    }
-
-    private void ClearRegistrations() {
-        for (ListenerRegistration registration : registrations.values()) {
-            if (registration != null) registration.remove();
-        }
-        registrations.clear();
     }
 
     public LiveData<List<Restaurant>> getRestaurantsLiveData() {
@@ -128,14 +142,13 @@ public class MainViewModel extends ViewModel {
 
     public LiveData<List<User>> getWorkmatesLiveData() {
         MutableLiveData<List<User>> workmatesLiveData = new MutableLiveData<>();
-        if (listener != null) listener.remove();
+        if (usersListener != null) usersListener.remove();
 
-        listener = userRepository.requestAllUsers(users -> {
+        usersListener = userRepository.requestAllUsers(users -> {
             for (User user : users) {
                 restaurantRepository.getRestaurant(user.getChosenRestaurantId(), chosenRestaurant -> {
-                    User newUser = new User(user);
-                    newUser.setChosenRestaurant(chosenRestaurant);
-                    users.set(users.indexOf(user), newUser);
+                    user.setChosenRestaurant(chosenRestaurant);
+                    users.set(users.indexOf(user), new User(user));
                     workmatesLiveData.postValue(users);
                 });
             }
@@ -147,8 +160,16 @@ public class MainViewModel extends ViewModel {
         userRepository.createUser();
     }
 
+    private void ClearRegistrations() {
+        for (ListenerRegistration registration : listeners) {
+            if (registration != null) registration.remove();
+        }
+        listeners.clear();
+    }
+
     public void stopListening() {
         ClearRegistrations();
-        if (listener != null) listener.remove();
+        if (usersListener != null) usersListener.remove();
+        if (numberListener != null) numberListener.remove();
     }
 }

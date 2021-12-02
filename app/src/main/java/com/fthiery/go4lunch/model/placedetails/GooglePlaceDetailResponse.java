@@ -9,23 +9,8 @@ import java.util.List;
 
 public class GooglePlaceDetailResponse {
 
-    @SerializedName("html_attributions")
-    @Expose
-    private List<Object> htmlAttributions = null;
     @SerializedName("result")
-    @Expose
     private Restaurant result;
-    @SerializedName("status")
-    @Expose
-    private String status;
-
-    public List<Object> getHtmlAttributions() {
-        return htmlAttributions;
-    }
-
-    public void setHtmlAttributions(List<Object> htmlAttributions) {
-        this.htmlAttributions = htmlAttributions;
-    }
 
     public Restaurant getResult() {
         return result;
@@ -33,14 +18,6 @@ public class GooglePlaceDetailResponse {
 
     public void setResult(Restaurant result) {
         this.result = result;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
 }

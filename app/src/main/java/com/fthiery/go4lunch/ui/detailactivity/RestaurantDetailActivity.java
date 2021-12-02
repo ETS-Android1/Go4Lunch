@@ -1,10 +1,12 @@
 package com.fthiery.go4lunch.ui.detailactivity;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -16,8 +18,11 @@ import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityDetailBinding;
 import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.ui.adapters.WorkmatesListAdapter;
+import com.fthiery.go4lunch.ui.notifications.NotificationReceiver;
 import com.fthiery.go4lunch.utils.WordUtils;
 import com.fthiery.go4lunch.viewmodel.DetailViewModel;
+
+import java.util.Calendar;
 
 public class RestaurantDetailActivity extends AppCompatActivity {
 
@@ -92,9 +97,7 @@ public class RestaurantDetailActivity extends AppCompatActivity {
         intentDial.setData(Uri.parse("tel:" + restaurant.getPhoneNumber()));
         if (restaurant.getPhoneNumber() != null && intentDial.resolveActivity(getPackageManager()) != null) {
             binding.actionCall.setEnabled(true);
-            binding.actionCall.setOnClickListener(view -> {
-                startActivity(intentDial);
-            });
+            binding.actionCall.setOnClickListener(view -> startActivity(intentDial));
         } else {
             binding.actionCall.setEnabled(false);
         }
@@ -106,18 +109,60 @@ public class RestaurantDetailActivity extends AppCompatActivity {
             Intent intentWeb = new Intent(Intent.ACTION_VIEW, Uri.parse(restaurant.getWebsiteUrl()));
             if (intentWeb.resolveActivity(getPackageManager()) != null) {
                 binding.actionWebsite.setEnabled(true);
-                binding.actionWebsite.setOnClickListener(view -> {
-                    startActivity(intentWeb);
-                });
+                binding.actionWebsite.setOnClickListener(view -> startActivity(intentWeb));
             } else {
                 binding.actionWebsite.setEnabled(false);
             }
         }
 
+        setRating(restaurant.getRating());
+
+        setLikeIcon(restaurant);
+
+        binding.actionLike.setOnClickListener(view -> viewModel.toggleLike(restaurant, this::setLikeIcon));
+
         // Floating Action Button to chose to eat at this restaurant
         binding.restaurantDetailFab.setOnClickListener(view -> {
             viewModel.toggleChosenRestaurant(restaurant.getId());
+
+            Context context = getApplicationContext();
+            Intent intent = new Intent(context, NotificationReceiver.class);
+            intent.putExtra("user",viewModel.getUserId());
+            intent.putExtra("restaurant",restaurant.getId());
+            PendingIntent pending = PendingIntent.getBroadcast(context, 42, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+            AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+            Calendar time = Calendar.getInstance();
+            time.add(Calendar.SECOND,5);
+//            time.set(Calendar.HOUR_OF_DAY, 16);
+//            time.set(Calendar.MINUTE, 19);
+//            time.set(Calendar.SECOND, 0);
+            if (Calendar.getInstance().after(time.getTime())) time.add(Calendar.DAY_OF_YEAR,1);
+
+            manager.set(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), pending);
         });
 
+    }
+
+    private void setRating(int rating) {
+        int drawable;
+        if (rating >= 3)
+            drawable = R.drawable.like_3_stars;
+        else if (rating == 2)
+            drawable = R.drawable.like_2_stars;
+        else if (rating == 1)
+            drawable = R.drawable.like_1_star;
+        else
+            drawable = 0;
+        binding.detailRestaurantPrimary.setCompoundDrawablesWithIntrinsicBounds(0,0,drawable,0);
+    }
+
+    private void setLikeIcon(Restaurant restaurant) {
+        if (restaurant.getLikes().contains(viewModel.getUserId())) {
+            binding.actionLike.setIconResource(R.drawable.ic_baseline_star_full_24);
+        } else {
+            binding.actionLike.setIconResource(R.drawable.ic_baseline_star_outline_24);
+        }
     }
 }

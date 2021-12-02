@@ -6,38 +6,45 @@
     android:layout_height="wrap_content"
     android:layout_margin="8dp">
 
-    <TextView
+    <com.elyeproj.loaderviewlibrary.LoaderTextView
         android:id="@+id/restaurant_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:ellipsize="end"
-        android:text="Name"
         android:textStyle="bold"
+        app:corners="50"
+        app:height_weight="0.6"
         app:layout_constraintEnd_toStartOf="@+id/distance"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:width_weight="0.8" />
 
-    <TextView
+    <com.elyeproj.loaderviewlibrary.LoaderTextView
         android:id="@+id/restaurant_address"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:ellipsize="end"
-        android:text="Address"
         app:layout_constraintBottom_toTopOf="@+id/open_till"
         app:layout_constraintEnd_toStartOf="@+id/workmates"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/restaurant_name" />
+        app:layout_constraintTop_toBottomOf="@+id/restaurant_name"
+        app:corners="50"
+        app:width_weight="0.8"
+        app:height_weight="0.6" />
 
-    <TextView
+    <com.elyeproj.loaderviewlibrary.LoaderTextView
         android:id="@+id/open_till"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Open till"
         android:textStyle="italic"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintEnd_toStartOf="@+id/workmates"
+        app:layout_constraintStart_toStartOf="parent"
+        app:corners="50"
+        app:width_weight="0.4"
+        app:height_weight="0.6" />
 
-    <ImageView
+    <com.elyeproj.loaderviewlibrary.LoaderImageView
         android:id="@+id/restaurant_photo"
         android:layout_width="64dp"
         android:layout_height="64dp"
@@ -46,15 +53,14 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
+    <com.elyeproj.loaderviewlibrary.LoaderTextView
         android:id="@+id/distance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:text="Distance"
         android:textColor="@android:color/darker_gray"
         app:layout_constraintEnd_toStartOf="@+id/restaurant_photo"
-        app:layout_constraintTop_toTopOf="@+id/restaurant_name" />
+        app:layout_constraintTop_toTopOf="@+id/restaurant_name"/>
 
     <TextView
         android:id="@+id/workmates"
@@ -63,7 +69,16 @@
         android:layout_marginEnd="8dp"
         android:drawableStart="@drawable/ic_outline_person_24"
         android:gravity="center"
-        app:layout_constraintBottom_toBottomOf="@+id/restaurant_address"
+        app:layout_constraintBottom_toTopOf="@+id/restaurant_rating"
         app:layout_constraintEnd_toStartOf="@+id/restaurant_photo" />
+
+    <ImageView
+        android:id="@+id/restaurant_rating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:padding="3dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/restaurant_photo" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -11,11 +11,7 @@ import java.util.Locale;
 
 public class Moment {
 
-    @SerializedName("day")
-    @Expose
     private Integer day;
-    @SerializedName("time")
-    @Expose
     private String time;
 
     public Moment() {}

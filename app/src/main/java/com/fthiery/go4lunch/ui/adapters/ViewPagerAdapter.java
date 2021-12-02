@@ -12,6 +12,10 @@ import com.fthiery.go4lunch.ui.mainactivity.WorkmatesFragment;
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
 
+    public MapFragment mapFragment;
+    public RestaurantListFragment restaurantListFragment;
+    public WorkmatesFragment workmatesFragment;
+
     public ViewPagerAdapter(FragmentActivity fa) {
         super(fa);
     }
@@ -21,11 +25,14 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     public Fragment createFragment(int position) {
         switch (position) {
             case 0:
-                return new MapFragment();
+                mapFragment = new MapFragment();
+                return mapFragment;
             case 1:
-                return new RestaurantListFragment();
+                restaurantListFragment = new RestaurantListFragment();
+                return restaurantListFragment;
             default:
-                return new WorkmatesFragment();
+                workmatesFragment = new WorkmatesFragment();
+                return workmatesFragment;
         }
     }
 

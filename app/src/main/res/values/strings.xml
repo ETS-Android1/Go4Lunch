@@ -57,4 +57,10 @@
     <string name="closedUntilTomorrow">"Closed until tomorrow, %s"</string>
     <string name="closingSoon">Closing soon</string>
     <string name="unknownOpeningHours">Unknown Opening hours</string>
+    <string name="action_search">Search</string>
+    <string name="search_hint">Enter the name of the restaurant</string>
+    <string name="channel_name">Default</string>
+    <string name="channel_description">Every day at 12 o\'clock, remind me my choice of restaurant</string>
+    <string name="you_are_eating_at">You\'re eating at %s.</string>
+    <string name="you_ll_be_eating_with">\nYou\'ll be eating with:</string>
 </resources>

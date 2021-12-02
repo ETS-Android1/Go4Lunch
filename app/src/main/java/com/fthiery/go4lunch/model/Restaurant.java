@@ -15,6 +15,7 @@ import com.google.gson.annotations.SerializedName;
 import com.google.maps.android.SphericalUtil;
 import com.google.maps.android.clustering.ClusterItem;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -23,45 +24,40 @@ import java.util.Objects;
 public class Restaurant implements ClusterItem {
 
     @SerializedName("place_id")
-    @Expose
     private String id;
 
     @SerializedName("name")
-    @Expose
     private String name;
 
     @SerializedName("photos")
-    @Expose
     private List<Photo> photos = null;
 
     @SerializedName("formatted_address")
-    @Expose
     private String address;
 
     @SerializedName("formatted_phone_number")
-    @Expose
     private String phoneNumber;
 
     @SerializedName("website")
-    @Expose
     @Nullable
     private String websiteUrl;
 
     @SerializedName("opening_hours")
-    @Expose
     private OpeningHours openingHours;
 
     @SerializedName("geometry")
-    @Expose
     private Geometry geometry;
 
-    /**
-     * Number of workmates eating at this restaurant
-     */
-    @Exclude
-    private int workmates = 0;
-    @Exclude
-    private int distance;
+    /** The list of users liking this restaurant **/
+    private List<String> likes = new ArrayList<>();
+
+    /** Number of workmates eating at this restaurant **/
+    private transient int workmates = 0;
+
+    /** Distance from the user's device **/
+    private transient int distance;
+
+    private transient int rating = 0;
 
     public Restaurant() {
     }
@@ -81,6 +77,8 @@ public class Restaurant implements ClusterItem {
         this.openingHours = that.openingHours;
         this.photos = that.photos;
         this.geometry = that.geometry;
+        this.likes = that.likes;
+        this.rating = that.rating;
     }
 
     public String getId() {
@@ -168,6 +166,19 @@ public class Restaurant implements ClusterItem {
         return distance;
     }
 
+    @Exclude public int getRating() {
+        return rating;
+    }
+
+    @Exclude public void updateRating(int numberOfUsers) {
+        double nLikes = likes.size() * 6;
+        double rating = 0;
+        if (numberOfUsers != 0) {
+            rating = Math.round(nLikes / (double) numberOfUsers);
+        }
+        this.rating = (int) rating;
+    }
+
     public List<Photo> getPhotos() {
         return photos;
     }
@@ -188,6 +199,7 @@ public class Restaurant implements ClusterItem {
     @Override
     @Exclude
     public LatLng getPosition() {
+        if (geometry == null) geometry = new Geometry();
         return geometry.getLatLng();
     }
 
@@ -215,13 +227,34 @@ public class Restaurant implements ClusterItem {
         if (workmates != that.workmates) return false;
         if (distance != that.distance) return false;
         if (!id.equals(that.id)) return false;
+        if (rating != that.rating) return false;
         if (!Objects.equals(photos, that.photos)) return false;
         if (!Objects.equals(name, that.name)) return false;
         if (!Objects.equals(address, that.address)) return false;
         if (!Objects.equals(phoneNumber, that.phoneNumber)) return false;
         if (!Objects.equals(websiteUrl, that.websiteUrl)) return false;
         if (!Objects.equals(openingHours, that.openingHours)) return false;
+        if (!Objects.equals(likes, that.likes)) return false;
         return Objects.equals(geometry, that.geometry);
+    }
+
+    public void setLikes(List<String> userIds) {
+        if (likes == null) this.likes = new ArrayList<>();
+        else this.likes = userIds;
+    }
+
+    public List<String> getLikes() {
+        return likes;
+    }
+
+    @Exclude public boolean toggleLike(String userId) {
+        if (likes.contains(userId)) {
+            likes.remove(userId);
+            return false;
+        } else {
+            likes.add(userId);
+            return true;
+        }
     }
 
     public static class RestaurantDistanceComparator implements Comparator<Restaurant> {

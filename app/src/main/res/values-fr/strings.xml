@@ -41,4 +41,10 @@
     <string name="closedUntilTomorrow">Fermé jusqu\'à demain, %s</string>
     <string name="closingSoon">Ferme bientôt</string>
     <string name="unknownOpeningHours">Horaires d\'ouverture inconnus</string>
+    <string name="action_search">Rechercher</string>
+    <string name="search_hint">Entrer le nom du restaurant</string>
+    <string name="channel_name">Défaut</string>
+    <string name="channel_description">Chaque jour à midi, rappelle-moi mon choix de restaurant</string>
+    <string name="you_are_eating_at">Vous mangez chez %s.</string>
+    <string name="you_ll_be_eating_with">\nVous mangerez avec:</string>
 </resources>

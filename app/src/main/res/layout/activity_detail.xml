@@ -41,27 +41,39 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="@dimen/activity_horizontal_margin">
+            android:layout_margin="@dimen/activity_horizontal_margin"
+            android:layout_marginTop="@dimen/activity_horizontal_margin"
+            android:layout_marginBottom="@dimen/activity_horizontal_margin"
+            android:paddingEnd="56dp">
 
-            <TextView
+            <com.elyeproj.loaderviewlibrary.LoaderTextView
                 android:id="@+id/detail_restaurant_primary"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/restaurant_name"
+                android:drawablePadding="8dp"
+                android:elegantTextHeight="true"
+                android:ellipsize="end"
+                android:lines="1"
+                android:minWidth="120dp"
                 android:textAppearance="@style/TextAppearance.AppCompat.Large"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:corners="50"
+                app:height_weight="0.6"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                app:width_weight="1" />
 
-            <TextView
+            <com.elyeproj.loaderviewlibrary.LoaderTextView
                 android:id="@+id/detail_restaurant_secondary"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/restaurant_address"
+                android:elegantTextHeight="true"
                 android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                app:corners="50"
+                app:height_weight="0.6"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/detail_restaurant_primary" />
+                app:layout_constraintTop_toBottomOf="@+id/detail_restaurant_primary"
+                app:width_weight="0.8" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -82,15 +94,14 @@
                 app:icon="@drawable/ic_baseline_call_24"
                 app:iconGravity="top" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/action_like"
                 style="@style/DetailViewButtonBarButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:enabled="false"
                 android:text="@string/like"
-                app:icon="@drawable/ic_baseline_star_24"
+                app:icon="@drawable/ic_baseline_star_outline_24"
                 app:iconGravity="top" />
 
             <Button
