@@ -21,18 +21,15 @@ import com.firebase.ui.auth.ErrorCodes;
 import com.firebase.ui.auth.IdpResponse;
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityMainBinding;
-import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.ui.adapters.ViewPagerAdapter;
-import com.fthiery.go4lunch.utils.Callback;
+import com.fthiery.go4lunch.ui.settings.SettingsActivity;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
-import com.google.android.material.navigation.NavigationBarView;
-import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Arrays;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, NavigationBarView.OnItemSelectedListener{
+public class MainActivity extends AppCompatActivity {
 
     private static final int RC_SIGN_IN = 123;
     private MainViewModel viewModel;
@@ -55,10 +52,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // Initialize the viewpager and bottom navigation
         initViewPager();
-        binding.layoutMain.bottomNavView.setOnItemSelectedListener(this);
+        binding.layoutMain.bottomNavView.setOnItemSelectedListener(this::navigationItemSelected);
 
         // Initialize the navigation drawer
-        binding.navView.setNavigationItemSelectedListener(this);
+        binding.navView.setNavigationItemSelectedListener(this::navigationItemSelected);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this,
                 binding.drawerLayout,
                 binding.layoutMain.toolbar,
@@ -182,12 +179,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_SHORT).show();
     }
 
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+    public boolean navigationItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.logout) {
             viewModel.signOut(this);
             binding.drawerLayout.closeDrawer(GravityCompat.START);
             startSignInActivity();
+        } else if (item.getItemId() == R.id.action_settings) {
+            Intent settingsActivity = new Intent(this, SettingsActivity.class);
+            startActivity(settingsActivity);
         } else if (item.getItemId() == R.id.navigation_map_view) {
             binding.layoutMain.viewpager.setCurrentItem(0);
         } else if (item.getItemId() == R.id.navigation_list_view) {

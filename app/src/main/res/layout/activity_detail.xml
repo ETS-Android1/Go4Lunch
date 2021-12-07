@@ -140,9 +140,8 @@
         android:layout_marginEnd="@dimen/fab_margin"
         android:layout_marginBottom="@dimen/fab_margin"
         android:contentDescription="@string/i_want_to_eat_there"
-        app:backgroundTint="@android:color/background_light"
         app:layout_anchor="@+id/toolbar_layout"
         app:layout_anchorGravity="bottom|end"
-        app:srcCompat="@drawable/ic_your_lunch" />
+        app:srcCompat="@drawable/ic_chose_restaurant_fab" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

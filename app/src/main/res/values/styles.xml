@@ -6,6 +6,8 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorSecondary">@android:color/white</item>
+        <item name="colorOnSecondary">@color/design_default_color_secondary</item>
     </style>
 
     <!-- STYLE FOR MAIN ACTIVITY -->
@@ -74,4 +76,5 @@
     <style name="Open" parent="AppTheme">
         <item name="android:textColor">?android:attr/colorControlNormal</item>
     </style>
+
 </resources>

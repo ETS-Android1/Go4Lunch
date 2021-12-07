@@ -15,7 +15,6 @@
     <string name="map_view">Map View</string>
     <string name="list_view">List view</string>
     <string name="work_mates">Work mates</string>
-    <string name="mapbox_access_token" translatable="false">pk.eyJ1IjoiZnJlZGVyaWN0aGllcnkiLCJhIjoiY2t1bWJ1MmluMWM4NzJ4cnYwZGxoZzM3YiJ9.sOeKe3MMKDQ43ipJ-LMntQ</string>
     <string name="your_lunch">Your lunch</string>
     <string name="connection_succeed">Successful connection</string>
     <string name="error_authentication_canceled">Authentication canceled</string>
@@ -26,22 +25,7 @@
     <string name="center_on_my_position">Center on my position</string>
     <string name="location_permission_denied">Location permission denied</string>
     <string name="permission_required_toast">Permission required</string>
-    <string name="title_activity_settings">SettingsActivity</string>
 
-    <!-- Preference Titles -->
-    <string name="messages_header">Messages</string>
-    <string name="sync_header">Sync</string>
-
-    <!-- Messages Preferences -->
-    <string name="signature_title">Your signature</string>
-    <string name="reply_title">Default reply action</string>
-
-    <!-- Sync Preferences -->
-    <string name="sync_title">Sync email periodically</string>
-    <string name="attachment_title">Download incoming attachments</string>
-    <string name="attachment_summary_on">Automatically download attachments for incoming emails
-    </string>
-    <string name="attachment_summary_off">Only download attachments when manually requested</string>
     <string name="hasnt_decided">hasn\'t decided yet.</string>
     <string name="is_eating_at">is eating at</string>
     <string name="call">Call</string>
@@ -63,4 +47,9 @@
     <string name="channel_description">Every day at 12 o\'clock, remind me my choice of restaurant</string>
     <string name="you_are_eating_at">You\'re eating at %s.</string>
     <string name="you_ll_be_eating_with">\nYou\'ll be eating with:</string>
+
+        <string name="title_activity_settings">Settings</string>
+    <string name="notifications_header">Notifications</string>
+    <string name="enable_notifications">Enable notifications</string>
+    <string name="notifications_summary">Get a notification everyday at 12 o\'clock reminding you your choice of restaurant.</string>
 </resources>

@@ -31,7 +31,7 @@ public class DetailViewModel extends ViewModel {
         MutableLiveData<Restaurant> restaurantLiveData = new MutableLiveData<>();
         listeners.add(restaurantRepository.listenRestaurant(id, restaurant -> {
             restaurantLiveData.postValue(restaurant);
-            listeners.add(userRepository.listenToNumberOfUsers(numberOfUsers -> {
+            listeners.add(userRepository.listenNumberOfUsers(numberOfUsers -> {
                 restaurant.updateRating(numberOfUsers);
                 restaurantLiveData.postValue(new Restaurant(restaurant));
             }));
@@ -41,7 +41,7 @@ public class DetailViewModel extends ViewModel {
 
     public LiveData<List<User>> requestWorkmatesEatingAtRestaurant(String restaurantId) {
         MutableLiveData<List<User>> workmatesLiveData = new MutableLiveData<>();
-        listeners.add(userRepository.listenToUsersEatingAt(restaurantId, users -> {
+        listeners.add(userRepository.listenUsersEatingAt(restaurantId, users -> {
             for (User user : users) {
                 restaurantRepository.getRestaurant(user.getChosenRestaurantId(), chosenRestaurant -> {
                     user.setChosenRestaurant(chosenRestaurant);
@@ -59,8 +59,20 @@ public class DetailViewModel extends ViewModel {
         listeners.clear();
     }
 
-    public void toggleChosenRestaurant(String restaurantId) {
-        userRepository.setChosenRestaurant(restaurantId, null);
+    public void toggleChosenRestaurant(String restaurantId, Callback<Boolean> callback) {
+        getChosenRestaurant(chosenRestaurantId -> {
+            if (chosenRestaurantId != null && chosenRestaurantId.equals(restaurantId)) {
+                userRepository.setChosenRestaurant("",null);
+                callback.onSuccess(false);
+            } else {
+                userRepository.setChosenRestaurant(restaurantId, null);
+                callback.onSuccess(true);
+            }
+        });
+    }
+
+    public void getChosenRestaurant(Callback<String> restaurantId) {
+        userRepository.getChosenRestaurant(getUserId(), restaurantId);
     }
 
     public String getUserId() {

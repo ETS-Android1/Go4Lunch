@@ -46,7 +46,7 @@ public class UserRepository {
         }
     }
 
-    public ListenerRegistration requestAllUsers(Callback<List<User>> callback) {
+    public ListenerRegistration listenAllUsers(Callback<List<User>> callback) {
         // Observes users and updates the list of chosen restaurants
         return getUsersCollection()
                 .addSnapshotListener((value, error) -> {
@@ -60,7 +60,7 @@ public class UserRepository {
                 });
     }
 
-    public ListenerRegistration listenToNumberOfUsers(Callback<Integer> onUpdate) {
+    public ListenerRegistration listenNumberOfUsers(Callback<Integer> onUpdate) {
         return getUsersCollection()
                 .addSnapshotListener((collection, error) -> {
                     if (collection != null) onUpdate.onSuccess(collection.size());
@@ -74,7 +74,7 @@ public class UserRepository {
      * @param callback     will get the data when ready
      * @return a registration allowing to remove it later
      */
-    public ListenerRegistration listenToUsersEatingAt(String restaurantId, Callback<List<User>> callback) {
+    public ListenerRegistration listenUsersEatingAt(String restaurantId, Callback<List<User>> callback) {
         return getUsersCollection()
                 .whereEqualTo("chosenRestaurantId", restaurantId)
                 .addSnapshotListener((value, error) -> {
@@ -99,19 +99,28 @@ public class UserRepository {
         }
     }
 
-    public ListenerRegistration getChosenRestaurants(Callback<List<String>> callback) {
+    public ListenerRegistration listenChosenRestaurants(Callback<List<String>> callback) {
         return getUsersCollection()
                 .whereNotEqualTo("chosenRestaurantId", null)
-                .addSnapshotListener(new EventListener<QuerySnapshot>() {
-                    @Override
-                    public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                        List<String> chosenRestaurants = new ArrayList<>();
-                        if (value != null) {
-                            for (QueryDocumentSnapshot doc : value) {
-                                chosenRestaurants.add(doc.get("chosenRestaurantId",String.class));
-                            }
+                .addSnapshotListener((value, error) -> {
+                    List<String> chosenRestaurants = new ArrayList<>();
+                    if (value != null) {
+                        for (QueryDocumentSnapshot doc : value) {
+                            chosenRestaurants.add(doc.get("chosenRestaurantId", String.class));
                         }
-                        callback.onSuccess(chosenRestaurants);
+                    }
+                    callback.onSuccess(chosenRestaurants);
+                });
+    }
+
+    public void getChosenRestaurant(String userId, Callback<String> callback) {
+        getUsersCollection()
+                .document(userId)
+                .get()
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot document) {
+                        callback.onSuccess((String) document.get("chosenRestaurantId"));
                     }
                 });
     }

@@ -40,7 +40,7 @@ public class MainViewModel extends ViewModel {
         super();
         userRepository = UserRepository.getInstance();
         restaurantRepository = RestaurantRepository.getInstance();
-        numberListener = userRepository.listenToNumberOfUsers(this::updateRatings);
+        numberListener = userRepository.listenNumberOfUsers(this::updateRatings);
     }
 
     private void updateRatings(Integer n) {
@@ -118,7 +118,7 @@ public class MainViewModel extends ViewModel {
 
                     // Listen to updates to the list of users eating at this restaurant
                     listeners.add(
-                            userRepository.listenToUsersEatingAt(restaurantId, users -> {
+                            userRepository.listenUsersEatingAt(restaurantId, users -> {
                                 // When the users eating at the restaurantId are updated,
                                 // create a new instance of the restaurantId and of the list
                                 // to force the livedata listeners to update
@@ -144,7 +144,7 @@ public class MainViewModel extends ViewModel {
         MutableLiveData<List<User>> workmatesLiveData = new MutableLiveData<>();
         if (usersListener != null) usersListener.remove();
 
-        usersListener = userRepository.requestAllUsers(users -> {
+        usersListener = userRepository.listenAllUsers(users -> {
             for (User user : users) {
                 restaurantRepository.getRestaurant(user.getChosenRestaurantId(), chosenRestaurant -> {
                     user.setChosenRestaurant(chosenRestaurant);

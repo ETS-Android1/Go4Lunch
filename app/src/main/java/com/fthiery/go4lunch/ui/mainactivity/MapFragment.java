@@ -79,12 +79,14 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void updateMarkers(List<Restaurant> restaurants) {
-        // Clear markers
-        clusterManager.clearItems();
+        if (clusterManager != null) {
+            // Clear markers
+            clusterManager.clearItems();
 
-        // Add new markers
-        clusterManager.addItems(restaurants);
-        clusterManager.cluster();
+            // Add new markers
+            clusterManager.addItems(restaurants);
+            clusterManager.cluster();
+        }
     }
 
     private void centerCameraAround(List<Restaurant> restaurants) {

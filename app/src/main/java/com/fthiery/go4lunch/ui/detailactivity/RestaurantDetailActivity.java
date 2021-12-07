@@ -122,27 +122,34 @@ public class RestaurantDetailActivity extends AppCompatActivity {
         binding.actionLike.setOnClickListener(view -> viewModel.toggleLike(restaurant, this::setLikeIcon));
 
         // Floating Action Button to chose to eat at this restaurant
+        viewModel.getChosenRestaurant(chosenRestaurant -> {
+            if (chosenRestaurant != null) binding.restaurantDetailFab.setActivated(chosenRestaurant.equals(restaurant.getId()));
+        });
         binding.restaurantDetailFab.setOnClickListener(view -> {
-            viewModel.toggleChosenRestaurant(restaurant.getId());
+            viewModel.toggleChosenRestaurant(restaurant.getId(), chosen -> {
+                binding.restaurantDetailFab.setActivated(chosen);
+                initNotificationAlarm();
+            });
+        });
 
-            Context context = getApplicationContext();
-            Intent intent = new Intent(context, NotificationReceiver.class);
-            intent.putExtra("user",viewModel.getUserId());
-            intent.putExtra("restaurant",restaurant.getId());
-            PendingIntent pending = PendingIntent.getBroadcast(context, 42, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
 
-            AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+    private void initNotificationAlarm() {
+        // TODO: À placer ailleurs
+        Context context = getApplicationContext();
+        Intent intent = new Intent(context, NotificationReceiver.class);
+        PendingIntent pending = PendingIntent.getBroadcast(context, 42, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-            Calendar time = Calendar.getInstance();
-            time.add(Calendar.SECOND,5);
+        AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        Calendar time = Calendar.getInstance();
+        time.add(Calendar.SECOND, 5);
 //            time.set(Calendar.HOUR_OF_DAY, 16);
 //            time.set(Calendar.MINUTE, 19);
 //            time.set(Calendar.SECOND, 0);
-            if (Calendar.getInstance().after(time.getTime())) time.add(Calendar.DAY_OF_YEAR,1);
+        if (Calendar.getInstance().after(time.getTime())) time.add(Calendar.DAY_OF_YEAR, 1);
 
-            manager.set(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), pending);
-        });
-
+        manager.set(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), pending);
     }
 
     private void setRating(int rating) {
@@ -155,7 +162,7 @@ public class RestaurantDetailActivity extends AppCompatActivity {
             drawable = R.drawable.like_1_star;
         else
             drawable = 0;
-        binding.detailRestaurantPrimary.setCompoundDrawablesWithIntrinsicBounds(0,0,drawable,0);
+        binding.detailRestaurantPrimary.setCompoundDrawablesWithIntrinsicBounds(0, 0, drawable, 0);
     }
 
     private void setLikeIcon(Restaurant restaurant) {
