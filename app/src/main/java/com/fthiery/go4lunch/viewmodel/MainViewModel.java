@@ -12,35 +12,39 @@ import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.model.User;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
-import com.fthiery.go4lunch.utils.Callback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
+
 public class MainViewModel extends ViewModel {
 
     private final UserRepository userRepository;
     private final RestaurantRepository restaurantRepository;
+
     private final MutableLiveData<List<Restaurant>> restaurantsLiveData = new MutableLiveData<>();
     private final Map<String, Restaurant> restaurants = new ConcurrentHashMap<>();
-    private final List<ListenerRegistration> listeners = new ArrayList<>();
-    private final List<Callback<LatLng>> locationListeners = new ArrayList<>();
-    private int numberOfUsers = 1;
-    private ListenerRegistration usersListener;
-    private final ListenerRegistration numberListener;
+
+    private final CompositeDisposable disposables = new CompositeDisposable();
+    private Disposable usersDisposable = null;
+    private final Disposable numberDisposable;
+
     private LatLng location;
+    private int numberOfUsers = 1;
+
 
     public MainViewModel() {
         super();
         userRepository = UserRepository.getInstance();
         restaurantRepository = RestaurantRepository.getInstance();
-        numberListener = userRepository.listenNumberOfUsers(this::updateRatings);
+        numberDisposable = userRepository.watchNumberOfUsers().subscribe(this::updateRatings);
     }
 
     private void updateRatings(Integer n) {
@@ -51,7 +55,7 @@ public class MainViewModel extends ViewModel {
     }
 
     @Nullable
-    public FirebaseUser getCurrentUser() {
+    private FirebaseUser getCurrentUser() {
         return userRepository.getCurrentUser();
     }
 
@@ -67,73 +71,38 @@ public class MainViewModel extends ViewModel {
         return userRepository.deleteUser(context);
     }
 
-    public void setLocation(LatLng latlng, Callback<List<Restaurant>> onLoaded) {
+    public void setLocation(LatLng latlng) {
         location = latlng;
-        for (Callback<LatLng> locationListener : locationListeners)
-            locationListener.onSuccess(latlng);
-        searchRestaurants("", onLoaded);
+        searchRestaurants("");
     }
 
-    public void setLocation(Location location, Callback<List<Restaurant>> onLoaded) {
-        setLocation(new LatLng(location.getLatitude(), location.getLongitude()), onLoaded);
+    public void setLocation(Location location) {
+        setLocation(new LatLng(location.getLatitude(), location.getLongitude()));
     }
 
-    public void registerLocationUpdates(Callback<LatLng> callback) {
-        locationListeners.add(callback);
-        callback.onSuccess(location);
-    }
+    public void searchRestaurants(String query) {
 
-    public void searchRestaurants(String query, Callback<List<Restaurant>> onLoaded) {
-
-        restaurantRepository.searchRestaurants(query, location, restaurantIds -> {
-            // When we get the restaurant list, request the list of users eating there
+        restaurantRepository.searchRestaurants(query, location).subscribe(result -> {
             restaurants.clear();
-
-            // Clear registrations
-            ClearRegistrations();
-
-            if (restaurantIds.size() == 0) {
-                restaurantsLiveData.postValue(new ArrayList<>(restaurants.values()));
-            }
-
-            for (String restaurantId : restaurantIds) {
-                // Start listening to updates to this restaurant
-                listeners.add(restaurantRepository.listenRestaurant(restaurantId, restaurant -> {
-
-                    // Add the restaurant to the HashMap and update the LiveData
-                    updateRestaurantMap(restaurant);
-
-                    if (restaurants.size() == restaurantIds.size()) {
-                        onLoaded.onSuccess(new ArrayList<>(restaurants.values()));
-                    }
-
-                    // Update the distance
-                    registerLocationUpdates(latLng -> {
-                        restaurant.updateDistanceTo(location);
-                        updateRestaurantMap(restaurant);
-                    });
-
-                    // Update the rating
+            disposables.clear();
+            for (String restaurantId : result) {
+                disposables.add(restaurantRepository.watchRestaurant(restaurantId).subscribe(restaurant -> {
                     restaurant.updateRating(numberOfUsers);
-
-                    // Listen to updates to the list of users eating at this restaurant
-                    listeners.add(
-                            userRepository.listenUsersEatingAt(restaurantId, users -> {
-                                // When the users eating at the restaurantId are updated,
-                                // create a new instance of the restaurantId and of the list
-                                // to force the livedata listeners to update
-                                restaurant.setWorkmates(users.size());
-                                updateRestaurantMap(restaurant);
-                            })
-                    );
+                    restaurant.updateDistanceTo(location);
+                    disposables.add(userRepository.watchUsersEatingAt(restaurant.getId()).subscribe(users -> {
+                        restaurant.setWorkmates(users.size());
+                        updateRestaurantMap(restaurant, result.size());
+                    }));
+                    updateRestaurantMap(restaurant, result.size());
                 }));
             }
         });
     }
 
-    private void updateRestaurantMap(Restaurant restaurant) {
+    private void updateRestaurantMap(Restaurant restaurant, int nItems) {
         restaurants.put(restaurant.getId(), new Restaurant(restaurant));
-        restaurantsLiveData.postValue(new ArrayList<>(restaurants.values()));
+        if (restaurants.size() == nItems)
+            restaurantsLiveData.postValue(new ArrayList<>(restaurants.values()));
     }
 
     public LiveData<List<Restaurant>> getRestaurantsLiveData() {
@@ -142,17 +111,18 @@ public class MainViewModel extends ViewModel {
 
     public LiveData<List<User>> getWorkmatesLiveData() {
         MutableLiveData<List<User>> workmatesLiveData = new MutableLiveData<>();
-        if (usersListener != null) usersListener.remove();
+        if (usersDisposable != null) usersDisposable.dispose();
 
-        usersListener = userRepository.listenAllUsers(users -> {
+        usersDisposable = userRepository.watchAllUsers().subscribe(users -> {
             for (User user : users) {
-                restaurantRepository.getRestaurant(user.getChosenRestaurantId(), chosenRestaurant -> {
-                    user.setChosenRestaurant(chosenRestaurant);
+                restaurantRepository.getRestaurant(user.getChosenRestaurantId()).subscribe(restaurant -> {
+                    user.setChosenRestaurant(restaurant);
                     users.set(users.indexOf(user), new User(user));
                     workmatesLiveData.postValue(users);
                 });
             }
         });
+
         return workmatesLiveData;
     }
 
@@ -160,16 +130,9 @@ public class MainViewModel extends ViewModel {
         userRepository.createUser();
     }
 
-    private void ClearRegistrations() {
-        for (ListenerRegistration registration : listeners) {
-            if (registration != null) registration.remove();
-        }
-        listeners.clear();
-    }
-
     public void stopListening() {
-        ClearRegistrations();
-        if (usersListener != null) usersListener.remove();
-        if (numberListener != null) numberListener.remove();
+        disposables.clear();
+        numberDisposable.dispose();
+        if (usersDisposable != null) usersDisposable.dispose();
     }
 }

@@ -1,12 +1,12 @@
 package com.fthiery.go4lunch.ui.adapters;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.ViewModel;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -20,8 +20,11 @@ import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
 
 public class WorkmatesListAdapter extends ListAdapter<User, WorkmatesListAdapter.WorkmateViewHolder> {
 
-    public WorkmatesListAdapter() {
+    private final boolean detailActivity;
+
+    public WorkmatesListAdapter(boolean detailActivity) {
         super(DIFF_CALLBACK);
+        this.detailActivity = detailActivity;
     }
 
     @NonNull
@@ -48,7 +51,7 @@ public class WorkmatesListAdapter extends ListAdapter<User, WorkmatesListAdapter
         }
     };
 
-    static class WorkmateViewHolder extends RecyclerView.ViewHolder {
+    class WorkmateViewHolder extends RecyclerView.ViewHolder {
         WorkmateViewBinding itemBinding;
 
         public WorkmateViewHolder(WorkmateViewBinding itemBinding) {
@@ -57,24 +60,34 @@ public class WorkmatesListAdapter extends ListAdapter<User, WorkmatesListAdapter
         }
 
         void bind(User user) {
-            if (user.getChosenRestaurant() != null) {
-                // If the workmate has chosen a restaurant, display his choice and set the onClickListener
-                itemBinding.workmateName.setTextAppearance(itemView.getContext(),R.style.WorkmateDecided);
-                itemBinding.workmateName.setText(String.format("%s %s %s",
-                        user.getName(),
-                        itemView.getResources().getString(R.string.is_eating_at),
-                        user.getChosenRestaurant().getName()));
-
-                itemView.setOnClickListener(view -> {
-                    Intent detailActivity = new Intent(view.getContext(), RestaurantDetailActivity.class);
-                    detailActivity.putExtra("Id", user.getChosenRestaurantId());
-                    view.getContext().startActivity(detailActivity);
-                });
-            } else {
-                // If the workmate hasn't chosen a restaurant, gray out his name
-                itemBinding.workmateName.setTextAppearance(itemView.getContext(),R.style.WorkmateUndecided);
-                itemBinding.workmateName.setText(String.format("%s %s", user.getName(), itemView.getResources().getString(R.string.hasnt_decided)));
+            Resources resources = itemView.getResources();
+            Context context = itemView.getContext();
+            if (detailActivity) {
+                // Detail activity
+                itemBinding.workmateName.setTextAppearance(context, R.style.WorkmateDecided);
+                itemBinding.workmateName.setText(String.format(resources.getString(R.string.is_joining), user.getName()));
                 itemView.setOnClickListener(null);
+            } else {
+                // Main activity
+                if (user.getChosenRestaurant() != null) {
+                    // If the workmate has chosen a restaurant, display his choice and set the onClickListener
+                    itemBinding.workmateName.setTextAppearance(context, R.style.WorkmateDecided);
+                    itemBinding.workmateName.setText(String.format(resources.getString(R.string.is_eating_at),
+                            user.getName(),
+                            user.getChosenRestaurant().getName()));
+
+                    itemView.setOnClickListener(view -> {
+                        Intent detailActivity = new Intent(view.getContext(), RestaurantDetailActivity.class);
+                        detailActivity.putExtra("Id", user.getChosenRestaurantId());
+                        view.getContext().startActivity(detailActivity);
+                    });
+                } else {
+                    // If the workmate hasn't chosen a restaurant, gray out his name
+                    itemBinding.workmateName.setTextAppearance(context, R.style.WorkmateUndecided);
+                    itemBinding.workmateName.setText(String.format(resources.getString(R.string.hasnt_decided),
+                            user.getName()));
+                    itemView.setOnClickListener(null);
+                }
             }
 
             Glide.with(itemBinding.getRoot())

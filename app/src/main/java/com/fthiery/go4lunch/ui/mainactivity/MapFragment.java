@@ -73,7 +73,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         // Initialize the location provider
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
-        viewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), this::updateMarkers);
+        viewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), restaurants -> {
+            updateMarkers(restaurants);
+            centerCameraAround(restaurants);
+        });
 
         return binding.getRoot();
     }
@@ -139,7 +142,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         binding.floatingActionButton.setVisibility(View.VISIBLE);
         binding.floatingActionButton.setOnClickListener(view -> {
-            viewModel.setLocation(googleMap.getCameraPosition().target, this::centerCameraAround);
+            viewModel.setLocation(googleMap.getCameraPosition().target);
         });
 
         // Enable the location component
@@ -170,7 +173,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 // Got last known location. In some rare situations this can be null.
                 if (location != null) {
                     // Logic to handle location object
-                    viewModel.setLocation(location, this::centerCameraAround);
+                    viewModel.setLocation(location);
                 }
             });
         } else {

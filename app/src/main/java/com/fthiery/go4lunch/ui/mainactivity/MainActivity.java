@@ -1,8 +1,12 @@
 package com.fthiery.go4lunch.ui.mainactivity;
 
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,11 +26,13 @@ import com.firebase.ui.auth.IdpResponse;
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityMainBinding;
 import com.fthiery.go4lunch.ui.adapters.ViewPagerAdapter;
+import com.fthiery.go4lunch.ui.notifications.NotificationReceiver;
 import com.fthiery.go4lunch.ui.settings.SettingsActivity;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -34,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int RC_SIGN_IN = 123;
     private MainViewModel viewModel;
     private ActivityMainBinding binding;
-    private ViewPagerAdapter pagerAdapter = new ViewPagerAdapter(this);
+    private final ViewPagerAdapter pagerAdapter = new ViewPagerAdapter(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
         if (!viewModel.isCurrentUserLogged()) {
             startSignInActivity();
         }
+
+        initNotificationAlarm();
     }
 
     private void initViewPager() {
@@ -113,13 +121,13 @@ public class MainActivity extends AppCompatActivity {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                viewModel.searchRestaurants(query, restaurants -> {});
+                viewModel.searchRestaurants(query);
                 return false;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                viewModel.searchRestaurants(newText, restaurants -> {});
+                viewModel.searchRestaurants(newText);
                 return false;
             }
         });
@@ -162,8 +170,8 @@ public class MainActivity extends AppCompatActivity {
                 // ERRORS
                 if (response == null) {
                     showSnackBar(getString(R.string.error_authentication_canceled));
-                } else if (response.getError()!= null) {
-                    if(response.getError().getErrorCode() == ErrorCodes.NO_NETWORK){
+                } else if (response.getError() != null) {
+                    if (response.getError().getErrorCode() == ErrorCodes.NO_NETWORK) {
                         showSnackBar(getString(R.string.error_no_internet));
                     } else if (response.getError().getErrorCode() == ErrorCodes.UNKNOWN_ERROR) {
                         showSnackBar(getString(R.string.error_unknown_error));
@@ -175,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Show Snack Bar with a message
-    private void showSnackBar( String message){
+    private void showSnackBar(String message) {
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_SHORT).show();
     }
 
@@ -195,6 +203,30 @@ public class MainActivity extends AppCompatActivity {
             binding.layoutMain.viewpager.setCurrentItem(2);
         }
         return false;
+    }
+
+    @SuppressLint("UnspecifiedImmutableFlag")
+    private void initNotificationAlarm() {
+        // Starts an alarm which launches a notification every day at 12 o'clock
+        Context context = getApplicationContext();
+        Intent intent = new Intent(context, NotificationReceiver.class);
+
+        int flag;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            flag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+        else flag = PendingIntent.FLAG_UPDATE_CURRENT;
+        PendingIntent pending = PendingIntent.getBroadcast(context, 42, intent, flag);
+
+        AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        Calendar time = Calendar.getInstance();
+        time.set(Calendar.HOUR_OF_DAY, 12);
+        time.set(Calendar.MINUTE, 0);
+        time.set(Calendar.SECOND, 0);
+        time.getTime();
+        if (time.before(Calendar.getInstance())) time.add(Calendar.DAY_OF_YEAR, 1);
+
+        manager.setRepeating(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), 86400000, pending);
     }
 
     @Override

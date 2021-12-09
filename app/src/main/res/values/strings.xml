@@ -26,8 +26,8 @@
     <string name="location_permission_denied">Location permission denied</string>
     <string name="permission_required_toast">Permission required</string>
 
-    <string name="hasnt_decided">hasn\'t decided yet.</string>
-    <string name="is_eating_at">is eating at</string>
+    <string name="hasnt_decided">%s hasn\'t decided yet.</string>
+    <string name="is_eating_at">%s is eating at %s</string>
     <string name="call">Call</string>
     <string name="like">Like</string>
     <string name="website">Website</string>
@@ -52,4 +52,5 @@
     <string name="notifications_header">Notifications</string>
     <string name="enable_notifications">Enable notifications</string>
     <string name="notifications_summary">Get a notification everyday at 12 o\'clock reminding you your choice of restaurant.</string>
+    <string name="is_joining">%s is joining !</string>
 </resources>

@@ -8,17 +8,16 @@ import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.model.User;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
-import com.fthiery.go4lunch.utils.Callback;
-import com.google.firebase.firestore.ListenerRegistration;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
 
 public class DetailViewModel extends ViewModel {
 
     private final UserRepository userRepository;
     private final RestaurantRepository restaurantRepository;
-    private final List<ListenerRegistration> listeners = new ArrayList<>();
+    private final CompositeDisposable disposables = new CompositeDisposable();
 
     public DetailViewModel() {
         super();
@@ -27,60 +26,61 @@ public class DetailViewModel extends ViewModel {
         restaurantRepository = RestaurantRepository.getInstance();
     }
 
-    public LiveData<Restaurant> requestRestaurantDetails(String id) {
+    public LiveData<Restaurant> watchRestaurantDetails(String id) {
         MutableLiveData<Restaurant> restaurantLiveData = new MutableLiveData<>();
-        listeners.add(restaurantRepository.listenRestaurant(id, restaurant -> {
+
+        disposables.add(restaurantRepository.watchRestaurant(id).subscribe(restaurant -> {
             restaurantLiveData.postValue(restaurant);
-            listeners.add(userRepository.listenNumberOfUsers(numberOfUsers -> {
-                restaurant.updateRating(numberOfUsers);
+            disposables.add(userRepository.watchNumberOfUsers().subscribe(n -> {
+                restaurant.updateRating(n);
                 restaurantLiveData.postValue(new Restaurant(restaurant));
             }));
         }));
+
         return restaurantLiveData;
     }
 
-    public LiveData<List<User>> requestWorkmatesEatingAtRestaurant(String restaurantId) {
+    public LiveData<List<User>> watchWorkmatesEatingAtRestaurant(String restaurantId) {
         MutableLiveData<List<User>> workmatesLiveData = new MutableLiveData<>();
-        listeners.add(userRepository.listenUsersEatingAt(restaurantId, users -> {
+
+        disposables.add(userRepository.watchUsersEatingAt(restaurantId).subscribe(users -> {
             for (User user : users) {
-                restaurantRepository.getRestaurant(user.getChosenRestaurantId(), chosenRestaurant -> {
-                    user.setChosenRestaurant(chosenRestaurant);
+                restaurantRepository.getRestaurant(user.getChosenRestaurantId()).subscribe(restaurant -> {
+                    user.setChosenRestaurant(restaurant);
                     workmatesLiveData.postValue(users);
                 });
             }
         }));
+
         return workmatesLiveData;
     }
 
     public void stopListening() {
-        for (ListenerRegistration registration : listeners) {
-            registration.remove();
-        }
-        listeners.clear();
+        disposables.clear();
     }
 
-    public void toggleChosenRestaurant(String restaurantId, Callback<Boolean> callback) {
-        getChosenRestaurant(chosenRestaurantId -> {
+    public void toggleChosenRestaurant(String restaurantId) {
+        userRepository.getChosenRestaurant(getUserId()).subscribe(chosenRestaurantId -> {
             if (chosenRestaurantId != null && chosenRestaurantId.equals(restaurantId)) {
-                userRepository.setChosenRestaurant("",null);
-                callback.onSuccess(false);
+                userRepository.setChosenRestaurant("");
             } else {
-                userRepository.setChosenRestaurant(restaurantId, null);
-                callback.onSuccess(true);
+                userRepository.setChosenRestaurant(restaurantId);
             }
         });
     }
 
-    public void getChosenRestaurant(Callback<String> restaurantId) {
-        userRepository.getChosenRestaurant(getUserId(), restaurantId);
+    public LiveData<String> watchChosenRestaurant() {
+        MutableLiveData<String> chosenRestaurant = new MutableLiveData<>();
+        disposables.add(userRepository.watchChosenRestaurant(getUserId()).subscribe(chosenRestaurant::postValue));
+        return chosenRestaurant;
     }
 
     public String getUserId() {
         return userRepository.getCurrentUserUID();
     }
 
-    public void toggleLike(Restaurant restaurant, Callback<Restaurant> callback) {
+    public void toggleLike(Restaurant restaurant) {
         restaurant.toggleLike(userRepository.getCurrentUserUID());
-        restaurantRepository.addRestaurantToFirebase(restaurant, callback);
+        restaurantRepository.addRestaurantToFirebase(restaurant);
     }
 }

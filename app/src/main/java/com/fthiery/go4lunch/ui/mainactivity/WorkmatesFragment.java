@@ -15,8 +15,6 @@ import com.fthiery.go4lunch.databinding.FragmentWorkmatesBinding;
 import com.fthiery.go4lunch.ui.adapters.WorkmatesListAdapter;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
 
-import java.util.ArrayList;
-
 public class WorkmatesFragment extends Fragment {
 
     private MainViewModel viewModel;
@@ -29,7 +27,7 @@ public class WorkmatesFragment extends Fragment {
         binding = FragmentWorkmatesBinding.inflate(inflater, container, false);
 
         // Initiate the RecyclerView
-        WorkmatesListAdapter adapter = new WorkmatesListAdapter();
+        WorkmatesListAdapter adapter = new WorkmatesListAdapter(false);
         binding.workmatesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext(),LinearLayoutManager.VERTICAL,false));
         binding.workmatesRecyclerView.setAdapter(adapter);
 

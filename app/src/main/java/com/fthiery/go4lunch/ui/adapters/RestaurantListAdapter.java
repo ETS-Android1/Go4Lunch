@@ -15,7 +15,6 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -28,10 +27,8 @@ import com.fthiery.go4lunch.databinding.RestaurantViewBinding;
 import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
 import com.fthiery.go4lunch.utils.WordUtils;
-import com.fthiery.go4lunch.viewmodel.MainViewModel;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;

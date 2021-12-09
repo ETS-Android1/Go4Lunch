@@ -1,8 +1,5 @@
 package com.fthiery.go4lunch.ui.detailactivity;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -18,11 +15,8 @@ import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityDetailBinding;
 import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.ui.adapters.WorkmatesListAdapter;
-import com.fthiery.go4lunch.ui.notifications.NotificationReceiver;
 import com.fthiery.go4lunch.utils.WordUtils;
 import com.fthiery.go4lunch.viewmodel.DetailViewModel;
-
-import java.util.Calendar;
 
 public class RestaurantDetailActivity extends AppCompatActivity {
 
@@ -36,6 +30,8 @@ public class RestaurantDetailActivity extends AppCompatActivity {
         // Initialize the ViewModel
         viewModel = new ViewModelProvider(this).get(DetailViewModel.class);
 
+        String restaurantId = getIntent().getStringExtra("Id");
+
         // Inflate the layout
         binding = ActivityDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -47,18 +43,23 @@ public class RestaurantDetailActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        // Request and observe the data
-        viewModel.requestRestaurantDetails(getIntent().getStringExtra("Id"))
-                .observe(this, this::bindRestaurant);
+        // Observe the restaurant data
+        viewModel.watchRestaurantDetails(restaurantId)
+                .observe(this, this::bind);
 
         // Initiate the RecyclerView
-        WorkmatesListAdapter adapter = new WorkmatesListAdapter();
+        WorkmatesListAdapter adapter = new WorkmatesListAdapter(true);
         binding.detailRestaurantUsers.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
         binding.detailRestaurantUsers.setAdapter(adapter);
 
-        // Request and observe the workmates who want to eat there
-        viewModel.requestWorkmatesEatingAtRestaurant(getIntent().getStringExtra("Id"))
+        // Observe the workmates who want to eat there
+        viewModel.watchWorkmatesEatingAtRestaurant(restaurantId)
                 .observe(this, adapter::submitList);
+
+        // Floating Action Button to chose to eat at this restaurant
+        viewModel.watchChosenRestaurant().observe(this, chosenRestaurant -> {
+            binding.restaurantDetailFab.setActivated(chosenRestaurant.equals(restaurantId));
+        });
     }
 
     // Get back to previous activity when clicking on Up
@@ -80,7 +81,7 @@ public class RestaurantDetailActivity extends AppCompatActivity {
     }
 
     // Bind the restaurant data to the views
-    private void bindRestaurant(Restaurant restaurant) {
+    private void bind(Restaurant restaurant) {
 
         binding.detailRestaurantPrimary.setText(WordUtils.capitalize(restaurant.getName()));
         binding.detailRestaurantSecondary.setText(restaurant.getAddress());
@@ -92,16 +93,20 @@ public class RestaurantDetailActivity extends AppCompatActivity {
                 .placeholder(R.drawable.login_background_img)
                 .into(binding.detailRestaurantPhoto);
 
-        // Enable or disable the "Call" button
-        Intent intentDial = new Intent(Intent.ACTION_DIAL);
-        intentDial.setData(Uri.parse("tel:" + restaurant.getPhoneNumber()));
-        if (restaurant.getPhoneNumber() != null && intentDial.resolveActivity(getPackageManager()) != null) {
-            binding.actionCall.setEnabled(true);
-            binding.actionCall.setOnClickListener(view -> startActivity(intentDial));
-        } else {
-            binding.actionCall.setEnabled(false);
-        }
+        enableCallButton(restaurant);
+        enableWebsiteButton(restaurant);
 
+        setRating(restaurant.getRating());
+        setLikeIcon(restaurant);
+
+        binding.actionLike.setOnClickListener(view -> viewModel.toggleLike(restaurant));
+
+        binding.restaurantDetailFab.setOnClickListener(view -> {
+            viewModel.toggleChosenRestaurant(restaurant.getId());
+        });
+    }
+
+    private void enableWebsiteButton(Restaurant restaurant) {
         // Enable or disable the "Website" button
         if (restaurant.getWebsiteUrl() == null) {
             binding.actionWebsite.setEnabled(false);
@@ -114,42 +119,18 @@ public class RestaurantDetailActivity extends AppCompatActivity {
                 binding.actionWebsite.setEnabled(false);
             }
         }
-
-        setRating(restaurant.getRating());
-
-        setLikeIcon(restaurant);
-
-        binding.actionLike.setOnClickListener(view -> viewModel.toggleLike(restaurant, this::setLikeIcon));
-
-        // Floating Action Button to chose to eat at this restaurant
-        viewModel.getChosenRestaurant(chosenRestaurant -> {
-            if (chosenRestaurant != null) binding.restaurantDetailFab.setActivated(chosenRestaurant.equals(restaurant.getId()));
-        });
-        binding.restaurantDetailFab.setOnClickListener(view -> {
-            viewModel.toggleChosenRestaurant(restaurant.getId(), chosen -> {
-                binding.restaurantDetailFab.setActivated(chosen);
-                initNotificationAlarm();
-            });
-        });
-
     }
 
-    private void initNotificationAlarm() {
-        // TODO: À placer ailleurs
-        Context context = getApplicationContext();
-        Intent intent = new Intent(context, NotificationReceiver.class);
-        PendingIntent pending = PendingIntent.getBroadcast(context, 42, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-
-        Calendar time = Calendar.getInstance();
-        time.add(Calendar.SECOND, 5);
-//            time.set(Calendar.HOUR_OF_DAY, 16);
-//            time.set(Calendar.MINUTE, 19);
-//            time.set(Calendar.SECOND, 0);
-        if (Calendar.getInstance().after(time.getTime())) time.add(Calendar.DAY_OF_YEAR, 1);
-
-        manager.set(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), pending);
+    private void enableCallButton(Restaurant restaurant) {
+        // Enable or disable the "Call" button
+        Intent intentDial = new Intent(Intent.ACTION_DIAL);
+        intentDial.setData(Uri.parse("tel:" + restaurant.getPhoneNumber()));
+        if (restaurant.getPhoneNumber() != null && intentDial.resolveActivity(getPackageManager()) != null) {
+            binding.actionCall.setEnabled(true);
+            binding.actionCall.setOnClickListener(view -> startActivity(intentDial));
+        } else {
+            binding.actionCall.setEnabled(false);
+        }
     }
 
     private void setRating(int rating) {

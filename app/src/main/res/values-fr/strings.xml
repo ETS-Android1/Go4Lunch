@@ -26,8 +26,8 @@
     <string name="center_on_my_position">Centrer sur ma position</string>
     <string name="location_permission_denied">Permission de localisation refusée</string>
     <string name="permission_required_toast">Permission requise</string>
-    <string name="hasnt_decided">n\'a pas encore décidé.</string>
-    <string name="is_eating_at">mange chez</string>
+    <string name="hasnt_decided">%s n\'a pas encore décidé.</string>
+    <string name="is_eating_at">%s mange chez %s</string>
     <string name="call">Appeler</string>
     <string name="like">J\'aime</string>
     <string name="website">Site web</string>
@@ -52,4 +52,5 @@
     <string name="notifications_header">Notifications</string>
     <string name="enable_notifications">Activer les notifications</string>
     <string name="notifications_summary">Recevoir une notification chaque jour vous rappelant votre choix de restaurant.</string>
+    <string name="is_joining">%s mange ici !</string>
 </resources>

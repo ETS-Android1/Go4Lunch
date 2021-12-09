@@ -1,33 +1,28 @@
 package com.fthiery.go4lunch.repository;
 
 import android.content.Context;
-import android.telecom.Call;
 
 import androidx.annotation.Nullable;
 
 import com.firebase.ui.auth.AuthUI;
-import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.model.User;
-import com.fthiery.go4lunch.utils.Callback;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
 
 public class UserRepository {
 
@@ -46,83 +41,104 @@ public class UserRepository {
         }
     }
 
-    public ListenerRegistration listenAllUsers(Callback<List<User>> callback) {
+    public Observable<List<User>> watchAllUsers() {
         // Observes users and updates the list of chosen restaurants
-        return getUsersCollection()
-                .addSnapshotListener((value, error) -> {
-                    List<User> users = new ArrayList<>();
-                    if (value != null) {
-                        for (QueryDocumentSnapshot doc : value) {
-                            users.add(doc.toObject(User.class));
-                        }
-                    }
-                    callback.onSuccess(users);
-                });
+        return Observable.create(emitter -> {
+            ListenerRegistration listener = getUsersCollection()
+                    .addSnapshotListener((collection, error) -> {
+                        if (error != null) emitter.onError(error);
+
+                        List<User> users = new ArrayList<>();
+                        if (collection != null)
+                            for (QueryDocumentSnapshot doc : collection)
+                                users.add(doc.toObject(User.class));
+                        emitter.onNext(users);
+                    });
+            emitter.setCancellable(listener::remove);
+        });
     }
 
-    public ListenerRegistration listenNumberOfUsers(Callback<Integer> onUpdate) {
-        return getUsersCollection()
-                .addSnapshotListener((collection, error) -> {
-                    if (collection != null) onUpdate.onSuccess(collection.size());
-                });
+    public Observable<Integer> watchNumberOfUsers() {
+        return Observable.create(emitter -> {
+            ListenerRegistration listener = getUsersCollection()
+                    .addSnapshotListener((collection, error) -> {
+                        if (collection != null) emitter.onNext(collection.size());
+                    });
+            emitter.setCancellable(listener::remove);
+        });
     }
 
     /**
      * Requests the users who have chosen to eat at restaurantId
      *
      * @param restaurantId
-     * @param callback     will get the data when ready
-     * @return a registration allowing to remove it later
+     * @return an Observable
      */
-    public ListenerRegistration listenUsersEatingAt(String restaurantId, Callback<List<User>> callback) {
-        return getUsersCollection()
-                .whereEqualTo("chosenRestaurantId", restaurantId)
-                .addSnapshotListener((value, error) -> {
-                    List<User> users = new ArrayList<>();
-                    if (value != null) {
-                        for (QueryDocumentSnapshot doc : value) {
-                            users.add(doc.toObject(User.class));
-                        }
-                    }
-                    callback.onSuccess(users);
-                });
+    public Observable<List<User>> watchUsersEatingAt(String restaurantId) {
+        return Observable.create(emitter -> {
+            ListenerRegistration listener = getUsersCollection()
+                    .whereEqualTo("chosenRestaurantId", restaurantId)
+                    .addSnapshotListener((collection, error) -> {
+                        if (error != null) emitter.onError(error);
+
+                        List<User> users = new ArrayList<>();
+                        if (collection != null)
+                            for (QueryDocumentSnapshot doc : collection)
+                                users.add(doc.toObject(User.class));
+                        emitter.onNext(users);
+                    });
+            emitter.setCancellable(listener::remove);
+        });
     }
 
-    public void setChosenRestaurant(String restaurantId, OnSuccessListener<Void> listener) {
+    public void setChosenRestaurant(String restaurantId) {
         String id = getCurrentUserUID();
         if (id != null) {
             Map<String, Object> data = new HashMap<>();
             data.put("chosenRestaurantId", restaurantId);
             getUsersCollection().document(id)
-                    .set(data, SetOptions.merge())
-                    .addOnSuccessListener(listener);
+                    .set(data, SetOptions.merge());
         }
     }
 
-    public ListenerRegistration listenChosenRestaurants(Callback<List<String>> callback) {
-        return getUsersCollection()
-                .whereNotEqualTo("chosenRestaurantId", null)
-                .addSnapshotListener((value, error) -> {
-                    List<String> chosenRestaurants = new ArrayList<>();
-                    if (value != null) {
-                        for (QueryDocumentSnapshot doc : value) {
-                            chosenRestaurants.add(doc.get("chosenRestaurantId", String.class));
-                        }
-                    }
-                    callback.onSuccess(chosenRestaurants);
-                });
+    public Observable<List<String>> watchChosenRestaurants() {
+        return Observable.create(emitter -> {
+            ListenerRegistration listener = getUsersCollection()
+                    .whereNotEqualTo("chosenRestaurantId", null)
+                    .addSnapshotListener((collection, error) -> {
+                        List<String> chosenRestaurants = new ArrayList<>();
+                        if (collection != null)
+                            for (QueryDocumentSnapshot doc : collection)
+                                chosenRestaurants.add(doc.get("chosenRestaurantId", String.class));
+                        emitter.onNext(chosenRestaurants);
+                    });
+            emitter.setCancellable(listener::remove);
+        });
     }
 
-    public void getChosenRestaurant(String userId, Callback<String> callback) {
-        getUsersCollection()
-                .document(userId)
-                .get()
-                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                    @Override
-                    public void onSuccess(DocumentSnapshot document) {
-                        callback.onSuccess((String) document.get("chosenRestaurantId"));
-                    }
-                });
+    public Observable<String> watchChosenRestaurant(String userId) {
+        return Observable.create(emitter -> {
+            ListenerRegistration listener = getUsersCollection()
+                    .document(userId)
+                    .addSnapshotListener((document, error) -> {
+                        if (error != null) emitter.onError(error);
+                        String chosenRestaurantId = document.get("chosenRestaurantId", String.class);
+                        emitter.onNext(chosenRestaurantId != null ? chosenRestaurantId : "");
+                    });
+            emitter.setCancellable(listener::remove);
+        });
+    }
+
+    public Single<String> getChosenRestaurant(String userId) {
+        return Single.create(emitter -> {
+            getUsersCollection()
+                    .document(userId)
+                    .get()
+                    .addOnSuccessListener(document -> {
+                        String chosenRestaurantId = document.get("chosenRestaurantId", String.class);
+                        emitter.onSuccess(chosenRestaurantId != null ? chosenRestaurantId : "");
+                    });
+        });
     }
 
     @Nullable
