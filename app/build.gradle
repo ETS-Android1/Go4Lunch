@@ -71,6 +71,9 @@ dependencies {
     implementation 'com.firebaseui:firebase-ui-firestore:8.0.0'
     implementation 'com.firebaseui:firebase-ui-storage:8.0.0'
 
+    // FACEBOOK
+    implementation 'com.facebook.android:facebook-android-sdk:12.2.0'
+
     // LOADERVIEW
     implementation 'io.github.elye:loaderviewlibrary:3.0.0'
 

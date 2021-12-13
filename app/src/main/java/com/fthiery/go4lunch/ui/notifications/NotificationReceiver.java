@@ -2,6 +2,7 @@ package com.fthiery.go4lunch.ui.notifications;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -13,6 +14,7 @@ import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.TaskStackBuilder;
 import androidx.preference.PreferenceManager;
 
 import com.bumptech.glide.Glide;
@@ -22,6 +24,7 @@ import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.model.User;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
+import com.fthiery.go4lunch.ui.DetailActivity.RestaurantDetailActivity;
 
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 
@@ -92,6 +95,20 @@ public class NotificationReceiver extends BroadcastReceiver {
                                 }
                                 notification.setStyle(new NotificationCompat.BigTextStyle().bigText(bigText));
                             }
+
+                            // Detail activity intent
+                            Intent detailIntent = new Intent(context, RestaurantDetailActivity.class);
+                            detailIntent.putExtra("Id", restaurantId);
+                            TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
+                            stackBuilder.addNextIntentWithParentStack(detailIntent);
+
+                            int flag;
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                                flag = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+                            else flag = PendingIntent.FLAG_UPDATE_CURRENT;
+                            PendingIntent detailPendingIntent = stackBuilder.getPendingIntent(0,flag);
+
+                            notification.setContentIntent(detailPendingIntent);
 
                             // Show the notification
                             manager.notify(42, notification.build());

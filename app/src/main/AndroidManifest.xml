@@ -42,7 +42,7 @@
             android:resource="@xml/searchable" />
 
         <activity
-            android:name=".ui.mainactivity.MainActivity"
+            android:name=".ui.MainActivity.MainActivity"
             android:exported="true"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -53,17 +53,18 @@
         </activity>
 
         <activity
-            android:name=".ui.detailactivity.RestaurantDetailActivity"
+            android:name=".ui.DetailActivity.RestaurantDetailActivity"
             android:exported="false"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".ui.mainactivity.MainActivity" />
+                android:value=".ui.MainActivity.MainActivity" />
         </activity>
 
         <activity
             android:name=".ui.settings.SettingsActivity"
             android:exported="false"
+            android:theme="@style/AppTheme"
             android:label="@string/title_activity_settings" />
     </application>
 

@@ -27,7 +27,7 @@
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
     <!-- STYLE SIGN-IN ACTIVITY -->
-    <style name="LoginTheme" parent="AppTheme">
+    <style name="LoginTheme" parent="AppTheme.NoTitle">
         <item name="colorButtonNormal">@color/colorAccent</item>
         <item name="colorControlNormal">@android:color/darker_gray</item>
         <item name="colorControlActivated">@android:color/darker_gray</item>
@@ -36,20 +36,19 @@
         <item name="android:textColorPrimary">@android:color/darker_gray</item>
         <item name="android:textColorSecondary">@android:color/darker_gray</item>
         <item name="android:windowBackground">@drawable/login_background</item>
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
-        <item name="android:statusBarColor">#08000000</item>
+        <item name="android:statusBarColor">#00000000</item>
         <item name="android:textColorHint">@android:color/darker_gray</item>
     </style>
 
-    <style name="NavigationView" parent="AppTheme">
+    <style name="NavigationView" parent="ThemeOverlay.MaterialComponents.Dark">
         <item name="textAllCaps">true</item>
-        <item name="backgroundColor">@color/colorPrimaryDark</item>
+        <item name="android:background">#F97843</item>
         <item name="android:textColor">@android:color/white</item>
     </style>
 
-    <style name="NavigationViewHeader" parent="ThemeOverlay.AppCompat.Dark">
+    <style name="NavigationViewHeader" parent="AppTheme">
         <item name="textAllCaps">false</item>
+        <item name="android:background">#0000</item>
     </style>
 
     <style name="WorkmateDecided" parent="TextAppearance.MaterialComponents.Body2">

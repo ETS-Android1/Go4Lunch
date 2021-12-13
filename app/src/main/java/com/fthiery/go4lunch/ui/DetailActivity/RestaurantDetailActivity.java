@@ -1,4 +1,4 @@
-package com.fthiery.go4lunch.ui.detailactivity;
+package com.fthiery.go4lunch.ui.DetailActivity;
 
 import android.content.Intent;
 import android.net.Uri;

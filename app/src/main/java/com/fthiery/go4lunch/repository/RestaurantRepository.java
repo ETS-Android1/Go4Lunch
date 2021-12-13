@@ -20,7 +20,6 @@ import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
-
 public class RestaurantRepository {
 
     private static volatile RestaurantRepository instance;
@@ -41,7 +40,7 @@ public class RestaurantRepository {
         }
     }
 
-    public Single<List<String>> searchRestaurants(String keyword, LatLng location) {
+    public Single<List<Restaurant>> searchRestaurants(String keyword, LatLng location) {
         String latLng = location.latitude + "," + location.longitude;
         int radius = (keyword.length() >= 1) ? 5000 : 800;
 
@@ -49,7 +48,11 @@ public class RestaurantRepository {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .timeout(10, TimeUnit.SECONDS)
-                .map(GooglePlaceNearbyResponse::getRestaurantIds);
+                .map(GooglePlaceNearbyResponse::getResults);
+    }
+
+    public Observable<Restaurant> watchRestaurant(Restaurant restaurant) {
+        return watchRestaurant(restaurant.getId());
     }
 
     public Observable<Restaurant> watchRestaurant(String placeId) {
@@ -58,7 +61,7 @@ public class RestaurantRepository {
                 ListenerRegistration listener = db.collection("restaurants")
                         .document(placeId)
                         .addSnapshotListener((document, error) -> {
-                            if (error != null) emitter.onError(error);
+                            if (error != null) Log.e("RestaurantRepository", "watchRestaurant: ", error);;
 
                             if (document != null && document.exists()) {
                                 Restaurant restaurant = document.toObject(Restaurant.class);

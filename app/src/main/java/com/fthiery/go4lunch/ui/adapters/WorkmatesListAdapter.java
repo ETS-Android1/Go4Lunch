@@ -16,7 +16,7 @@ import com.bumptech.glide.request.RequestOptions;
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.WorkmateViewBinding;
 import com.fthiery.go4lunch.model.User;
-import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
+import com.fthiery.go4lunch.ui.DetailActivity.RestaurantDetailActivity;
 
 public class WorkmatesListAdapter extends ListAdapter<User, WorkmatesListAdapter.WorkmateViewHolder> {
 

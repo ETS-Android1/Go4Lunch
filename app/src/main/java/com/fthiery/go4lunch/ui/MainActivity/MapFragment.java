@@ -1,4 +1,4 @@
-package com.fthiery.go4lunch.ui.mainactivity;
+package com.fthiery.go4lunch.ui.MainActivity;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -21,7 +21,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.FragmentMapBinding;
 import com.fthiery.go4lunch.model.Restaurant;
-import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
+import com.fthiery.go4lunch.ui.DetailActivity.RestaurantDetailActivity;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;

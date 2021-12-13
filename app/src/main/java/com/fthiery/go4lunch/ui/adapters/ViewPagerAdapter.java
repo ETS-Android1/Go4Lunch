@@ -5,9 +5,9 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import com.fthiery.go4lunch.ui.mainactivity.MapFragment;
-import com.fthiery.go4lunch.ui.mainactivity.RestaurantListFragment;
-import com.fthiery.go4lunch.ui.mainactivity.WorkmatesFragment;
+import com.fthiery.go4lunch.ui.MainActivity.MapFragment;
+import com.fthiery.go4lunch.ui.MainActivity.RestaurantListFragment;
+import com.fthiery.go4lunch.ui.MainActivity.WorkmatesFragment;
 
 
 public class ViewPagerAdapter extends FragmentStateAdapter {

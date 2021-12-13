@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">Go4Lunch</string>
     <string name="title_activity_main">MainActivity</string>
+
+    <string name="facebook_application_id" translatable="false">6693675194007458</string>
+    <string name="fb_login_protocol_scheme" translatable="false">fb6693675194007458</string>
+
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="nav_header_title">Android Studio</string>
@@ -48,7 +52,7 @@
     <string name="you_are_eating_at">You\'re eating at %s.</string>
     <string name="you_ll_be_eating_with">\nYou\'ll be eating with:</string>
 
-        <string name="title_activity_settings">Settings</string>
+    <string name="title_activity_settings">Settings</string>
     <string name="notifications_header">Notifications</string>
     <string name="enable_notifications">Enable notifications</string>
     <string name="notifications_summary">Get a notification everyday at 12 o\'clock reminding you your choice of restaurant.</string>

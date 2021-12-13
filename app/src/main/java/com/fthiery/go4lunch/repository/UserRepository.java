@@ -1,6 +1,7 @@
 package com.fthiery.go4lunch.repository;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -10,7 +11,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -71,7 +71,7 @@ public class UserRepository {
     /**
      * Requests the users who have chosen to eat at restaurantId
      *
-     * @param restaurantId
+     * @param restaurantId the Id of the restaurant
      * @return an Observable
      */
     public Observable<List<User>> watchUsersEatingAt(String restaurantId) {
@@ -172,20 +172,31 @@ public class UserRepository {
             String urlPicture = (user.getPhotoUrl() != null) ? user.getPhotoUrl().toString() : null;
             String username = user.getDisplayName();
             String uid = user.getUid();
+            String emailAddress = user.getEmail();
 
-            User userToCreate = new User(uid, username, urlPicture);
+            User userToCreate = new User(uid, username, emailAddress, urlPicture);
 
-            getUserData().addOnSuccessListener(documentSnapshot -> getUsersCollection().document(uid).set(userToCreate));
+            getUsersCollection()
+                    .document(uid)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> getUsersCollection().document(uid).set(userToCreate));
         }
     }
 
-    // Get User Data from Firestore
-    public Task<DocumentSnapshot> getUserData() {
-        String uid = getCurrentUserUID();
-        if (uid != null) {
-            return getUsersCollection().document(uid).get();
-        } else {
-            return null;
-        }
+    public Observable<User> watchUser() {
+        return watchUser(getCurrentUserUID());
+    }
+
+    public Observable<User> watchUser(String userId) {
+        return Observable.create(emitter -> {
+            ListenerRegistration listener = getUsersCollection()
+                    .document(userId)
+                    .addSnapshotListener((document, error) -> {
+                        if (error != null) emitter.onError(error);
+                        User user = document != null ? document.toObject(User.class) : null;
+                        if (user != null) emitter.onNext(user);
+                    });
+            emitter.setCancellable(listener::remove);
+        });
     }
 }

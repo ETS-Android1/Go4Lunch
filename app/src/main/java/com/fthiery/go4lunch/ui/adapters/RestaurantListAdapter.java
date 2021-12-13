@@ -25,7 +25,7 @@ import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.RestaurantViewBinding;
 import com.fthiery.go4lunch.model.Restaurant;
-import com.fthiery.go4lunch.ui.detailactivity.RestaurantDetailActivity;
+import com.fthiery.go4lunch.ui.DetailActivity.RestaurantDetailActivity;
 import com.fthiery.go4lunch.utils.WordUtils;
 
 import java.text.SimpleDateFormat;

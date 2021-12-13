@@ -7,22 +7,24 @@ import java.util.Objects;
 public class User {
     private String id;
     private String name;
+    private String emailAddress;
     private String photo;
     private String chosenRestaurantId;
     @Exclude private Restaurant chosenRestaurant;
 
-    public User() {
-    }
+    public User () {}
 
-    public User(String id, String name, String photo) {
+    public User(String id, String name, String emailAddress, String urlPicture) {
         this.id = id;
         this.name = name;
-        this.photo = photo;
+        this.emailAddress = emailAddress;
+        this.photo = urlPicture;
     }
 
     public User(User that) {
         this.id = that.id;
         this.name = that.name;
+        this.emailAddress = that.emailAddress;
         this.photo = that.photo;
         this.chosenRestaurantId = that.chosenRestaurantId;
         this.chosenRestaurant = that.chosenRestaurant;
@@ -44,6 +46,14 @@ public class User {
         this.name = name;
     }
 
+    public String getEmail() {
+        return emailAddress;
+    }
+
+    public void setEmail(String emailAddress) {
+        this.emailAddress = emailAddress;
+    }
+
     public String getPhoto() {
         return photo;
     }
@@ -53,7 +63,7 @@ public class User {
     }
 
     public String getChosenRestaurantId() {
-        return chosenRestaurantId;
+        return (chosenRestaurantId == null) ? "" : chosenRestaurantId;
     }
 
     public void setChosenRestaurantId(String chosenRestaurantId) {
@@ -80,5 +90,4 @@ public class User {
         if (!Objects.equals(photo, user.photo)) return false;
         return Objects.equals(chosenRestaurantId, user.chosenRestaurantId);
     }
-
 }

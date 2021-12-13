@@ -1,4 +1,4 @@
-package com.fthiery.go4lunch.ui.mainactivity;
+package com.fthiery.go4lunch.ui.MainActivity;
 
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
@@ -6,13 +6,19 @@ import android.app.PendingIntent;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Base64;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
@@ -20,20 +26,24 @@ import androidx.core.view.GravityCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
-import com.firebase.ui.auth.AuthUI;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.firebase.ui.auth.ErrorCodes;
 import com.firebase.ui.auth.IdpResponse;
 import com.fthiery.go4lunch.R;
 import com.fthiery.go4lunch.databinding.ActivityMainBinding;
+import com.fthiery.go4lunch.databinding.NavHeaderMainBinding;
+import com.fthiery.go4lunch.ui.DetailActivity.RestaurantDetailActivity;
+import com.fthiery.go4lunch.utils.AuthResultContract;
 import com.fthiery.go4lunch.ui.adapters.ViewPagerAdapter;
 import com.fthiery.go4lunch.ui.notifications.NotificationReceiver;
 import com.fthiery.go4lunch.ui.settings.SettingsActivity;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.util.Arrays;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Calendar;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,6 +51,8 @@ public class MainActivity extends AppCompatActivity {
     private MainViewModel viewModel;
     private ActivityMainBinding binding;
     private final ViewPagerAdapter pagerAdapter = new ViewPagerAdapter(this);
+    private final ActivityResultLauncher<Integer> authResultLauncher = registerForActivityResult(new AuthResultContract(), this::handleAuthResponse);
+    private String chosenRestaurant;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,9 +83,29 @@ public class MainActivity extends AppCompatActivity {
         toggle.setDrawerIndicatorEnabled(true);
         toggle.syncState();
 
+        // Bind navigation drawer fields
+        View headerView = binding.navView.getHeaderView(0);
+        NavHeaderMainBinding headerBinding = NavHeaderMainBinding.bind(headerView);
+        viewModel.getUser().observe(this, user -> {
+            // Display the user name and email address
+            headerBinding.navHeaderName.setText(user.getName());
+            headerBinding.navHeaderMail.setText(user.getEmail());
+
+            chosenRestaurant = user.getChosenRestaurantId();
+            // Enable or disable "Your Lunch" menu item
+            binding.navView.getMenu().findItem(R.id.your_lunch).setEnabled(chosenRestaurant != null && !chosenRestaurant.equals(""));
+
+            // Load the user photo
+            Glide.with(headerBinding.getRoot())
+                    .load(user.getPhoto())
+                    .placeholder(R.drawable.ic_baseline_account_circle_24)
+                    .apply(RequestOptions.circleCropTransform())
+                    .into(headerBinding.navHeaderAvatar);
+        });
+
         // Check if the user is logged and start the sign-in activity if needed
         if (!viewModel.isCurrentUserLogged()) {
-            startSignInActivity();
+            authResultLauncher.launch(RC_SIGN_IN);
         }
 
         initNotificationAlarm();
@@ -121,13 +153,13 @@ public class MainActivity extends AppCompatActivity {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                viewModel.searchRestaurants(query);
+                viewModel.getRestaurants(query);
                 return false;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                viewModel.searchRestaurants(newText);
+                viewModel.getRestaurants(newText);
                 return false;
             }
         });
@@ -135,51 +167,20 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    private void startSignInActivity() {
-
-        // Choose authentication providers
-        List<AuthUI.IdpConfig> providers = Arrays.asList(
-                new AuthUI.IdpConfig.GoogleBuilder().build(),
-                new AuthUI.IdpConfig.EmailBuilder().build());
-
-        // Launch the activity
-        startActivityForResult(
-                AuthUI.getInstance()
-                        .createSignInIntentBuilder()
-                        .setTheme(R.style.LoginTheme)
-                        .setAvailableProviders(providers)
-                        .setIsSmartLockEnabled(false, true)
-                        .setLogo(R.drawable.logo)
-                        .build(),
-                RC_SIGN_IN);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        IdpResponse response = IdpResponse.fromResultIntent(data);
-
-        if (requestCode == RC_SIGN_IN) {
-            // SUCCESS
-            if (resultCode == RESULT_OK) {
-                showSnackBar(getString(R.string.connection_succeed));
-                viewModel.createUser();
-                //recreate();
-            } else {
-                // ERRORS
-                if (response == null) {
-                    showSnackBar(getString(R.string.error_authentication_canceled));
-                } else if (response.getError() != null) {
-                    if (response.getError().getErrorCode() == ErrorCodes.NO_NETWORK) {
-                        showSnackBar(getString(R.string.error_no_internet));
-                    } else if (response.getError().getErrorCode() == ErrorCodes.UNKNOWN_ERROR) {
-                        showSnackBar(getString(R.string.error_unknown_error));
-                    }
-                }
-                finish();
-            }
+    private void handleAuthResponse(IdpResponse result) {
+        if (result != null && result.getError() == null) {
+            showSnackBar(getString(R.string.connection_succeed));
+            viewModel.createUser();
+            //recreate();
+            return;
         }
+        if (result == null) showSnackBar(getString(R.string.error_authentication_canceled));
+        else if (result.getError() != null) {
+            if (result.getError().getErrorCode() == ErrorCodes.NO_NETWORK)
+                showSnackBar(getString(R.string.error_no_internet));
+            else showSnackBar(getString(R.string.error_unknown_error));
+        }
+        finish();
     }
 
     // Show Snack Bar with a message
@@ -191,10 +192,14 @@ public class MainActivity extends AppCompatActivity {
         if (item.getItemId() == R.id.logout) {
             viewModel.signOut(this);
             binding.drawerLayout.closeDrawer(GravityCompat.START);
-            startSignInActivity();
+            authResultLauncher.launch(RC_SIGN_IN);
         } else if (item.getItemId() == R.id.action_settings) {
             Intent settingsActivity = new Intent(this, SettingsActivity.class);
             startActivity(settingsActivity);
+        } else if (item.getItemId() == R.id.your_lunch) {
+            Intent detailActivity = new Intent(this, RestaurantDetailActivity.class);
+            detailActivity.putExtra("Id", chosenRestaurant);
+            startActivity(detailActivity);
         } else if (item.getItemId() == R.id.navigation_map_view) {
             binding.layoutMain.viewpager.setCurrentItem(0);
         } else if (item.getItemId() == R.id.navigation_list_view) {
@@ -224,14 +229,8 @@ public class MainActivity extends AppCompatActivity {
         time.set(Calendar.MINUTE, 0);
         time.set(Calendar.SECOND, 0);
         time.getTime();
-        if (time.before(Calendar.getInstance())) time.add(Calendar.DAY_OF_YEAR, 1);
+        if (time.after(Calendar.getInstance())) time.add(Calendar.DAY_OF_YEAR, -1);
 
-        manager.setRepeating(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), 86400000, pending);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        viewModel.stopListening();
+        manager.setRepeating(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), 60_000, pending);
     }
 }

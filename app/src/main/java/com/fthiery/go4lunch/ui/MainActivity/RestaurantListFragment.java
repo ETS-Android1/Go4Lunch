@@ -1,4 +1,4 @@
-package com.fthiery.go4lunch.ui.mainactivity;
+package com.fthiery.go4lunch.ui.MainActivity;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
