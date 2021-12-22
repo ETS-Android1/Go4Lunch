@@ -23,8 +23,18 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 public class RestaurantRepository {
 
     private static volatile RestaurantRepository instance;
-    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private final GooglePlaceService service = retrofit.create(GooglePlaceService.class);
+    private final FirebaseFirestore db;
+    private final GooglePlaceService service;
+
+    public RestaurantRepository() {
+        db = FirebaseFirestore.getInstance();
+        service = retrofit.create(GooglePlaceService.class);
+    }
+
+    public RestaurantRepository(FirebaseFirestore firestoreInstance, GooglePlaceService placeService) {
+        db = firestoreInstance;
+        service = placeService;
+    }
 
     public static RestaurantRepository getInstance() {
         RestaurantRepository result = instance;
@@ -61,7 +71,8 @@ public class RestaurantRepository {
                 ListenerRegistration listener = db.collection("restaurants")
                         .document(placeId)
                         .addSnapshotListener((document, error) -> {
-                            if (error != null) Log.e("RestaurantRepository", "watchRestaurant: ", error);;
+                            if (error != null)
+                                Log.e("RestaurantRepository", "watchRestaurant: ", error);
 
                             if (document != null && document.exists()) {
                                 Restaurant restaurant = document.toObject(Restaurant.class);
@@ -80,19 +91,20 @@ public class RestaurantRepository {
 
     public Single<Restaurant> getRestaurant(String placeId) {
         return Single.create(emitter -> {
-           if (placeId != null && !placeId.equals("")) {
-               db.collection("restaurants")
-                       .document(placeId)
-                       .get()
-                       .addOnSuccessListener(document -> {
-                           if (document != null && document.exists())
-                               emitter.onSuccess(document.toObject(Restaurant.class));
-                           else getRestaurantDetailsFromGooglePlaceApi(placeId).subscribe(restaurant -> {
-                               addRestaurantToFirebase(restaurant);
-                               emitter.onSuccess(restaurant);
-                           });
-                       });
-           }
+            if (placeId != null && !placeId.equals("")) {
+                db.collection("restaurants")
+                        .document(placeId)
+                        .get()
+                        .addOnSuccessListener(document -> {
+                            if (document.exists())
+                                emitter.onSuccess(document.toObject(Restaurant.class));
+                            else getRestaurantDetailsFromGooglePlaceApi(placeId)
+                                    .subscribe(restaurant -> {
+                                        addRestaurantToFirebase(restaurant);
+                                        emitter.onSuccess(restaurant);
+                                    });
+                        });
+            }
         });
     }
 

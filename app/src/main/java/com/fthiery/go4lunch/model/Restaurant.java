@@ -16,6 +16,7 @@ import com.google.maps.android.SphericalUtil;
 import com.google.maps.android.clustering.ClusterItem;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -48,13 +49,19 @@ public class Restaurant implements ClusterItem {
     @SerializedName("geometry")
     private Geometry geometry;
 
-    /** The list of users liking this restaurant **/
+    /**
+     * The list of users liking this restaurant
+     **/
     private List<String> likes = new ArrayList<>();
 
-    /** Number of workmates eating at this restaurant **/
+    /**
+     * Number of workmates eating at this restaurant
+     **/
     private transient int workmates = 0;
 
-    /** Distance from the user's device **/
+    /**
+     * Distance from the user's device
+     **/
     private transient int distance;
 
     private transient int rating = 0;
@@ -64,6 +71,13 @@ public class Restaurant implements ClusterItem {
 
     public Restaurant(String id) {
         this.id = id;
+    }
+
+    public Restaurant(String id, String name, String address, LatLng latLng) {
+        this.id = id;
+        this.name = name;
+        this.address = address;
+        this.geometry = new Geometry(latLng);
     }
 
     public Restaurant(Restaurant that) {
@@ -157,6 +171,17 @@ public class Restaurant implements ClusterItem {
         this.openingHours = openingHours;
     }
 
+    @Exclude
+    public int howLongStillOpen() {
+        if (openingHours != null) {
+            Calendar now = Calendar.getInstance();
+            if (openingHours.isOpenAt(now))
+                return (int) (openingHours.nextTime(now).getTimeInMillis() - now.getTimeInMillis());
+            else
+                return (int) (now.getTimeInMillis() - openingHours.nextTime(now).getTimeInMillis());
+        } else return -1_000_000_000;
+    }
+
     public void updateDistanceTo(LatLng position) {
         this.distance = (int) SphericalUtil.computeDistanceBetween(getPosition(), position);
     }
@@ -166,11 +191,13 @@ public class Restaurant implements ClusterItem {
         return distance;
     }
 
-    @Exclude public int getRating() {
+    @Exclude
+    public int getRating() {
         return rating;
     }
 
-    @Exclude public void updateRating(int numberOfUsers) {
+    @Exclude
+    public void updateRating(int numberOfUsers) {
         double nLikes = likes.size() * 6;
         double rating = 0;
         if (numberOfUsers != 0) {
@@ -247,20 +274,14 @@ public class Restaurant implements ClusterItem {
         return likes;
     }
 
-    @Exclude public boolean toggleLike(String userId) {
+    @Exclude
+    public boolean toggleLike(String userId) {
         if (likes.contains(userId)) {
             likes.remove(userId);
             return false;
         } else {
             likes.add(userId);
             return true;
-        }
-    }
-
-    public static class RestaurantDistanceComparator implements Comparator<Restaurant> {
-        @Override
-        public int compare(Restaurant left, Restaurant right) {
-            return left.distance - right.distance;
         }
     }
 }

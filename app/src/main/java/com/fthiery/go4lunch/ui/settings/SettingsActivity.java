@@ -30,6 +30,7 @@ public class SettingsActivity extends AppCompatActivity {
     // Get back to previous activity when clicking on Up
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        // TODO: ajouter une option pour supprimer son compte
         switch (item.getItemId()) {
             case android.R.id.home: {
                 finish();

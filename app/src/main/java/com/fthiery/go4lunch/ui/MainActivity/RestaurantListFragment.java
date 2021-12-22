@@ -38,10 +38,7 @@ public class RestaurantListFragment extends Fragment {
         binding.restaurantsRecyclerView.addItemDecoration(dividerItemDecoration);
 
         // Start observing the restaurants list
-        viewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), list -> {
-            Collections.sort(list, new Restaurant.RestaurantDistanceComparator());
-            adapter.submitList(list);
-        });
+        viewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), adapter::submitList);
 
         return binding.getRoot();
     }

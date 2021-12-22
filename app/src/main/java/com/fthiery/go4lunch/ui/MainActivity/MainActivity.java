@@ -6,13 +6,8 @@ import android.app.PendingIntent;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.Signature;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Base64;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -38,11 +33,10 @@ import com.fthiery.go4lunch.utils.AuthResultContract;
 import com.fthiery.go4lunch.ui.adapters.ViewPagerAdapter;
 import com.fthiery.go4lunch.ui.notifications.NotificationReceiver;
 import com.fthiery.go4lunch.ui.settings.SettingsActivity;
+import com.fthiery.go4lunch.utils.Sort;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
@@ -65,13 +59,52 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Initialize the toolbar
-        setSupportActionBar(binding.layoutMain.toolbar);
+        // Check if the user is logged and start the sign-in activity if needed
+        if (!viewModel.isCurrentUserLogged()) {
+            authResultLauncher.launch(RC_SIGN_IN);
+        } else {
+            // Initialize the toolbar
+            setSupportActionBar(binding.layoutMain.toolbar);
 
+            // Initialize the rest of the activity
+            initViewPager();
+            initNavigationDrawer();
+            initNotificationAlarm();
+        }
+    }
+
+    private void initViewPager() {
         // Initialize the viewpager and bottom navigation
-        initViewPager();
-        binding.layoutMain.bottomNavView.setOnItemSelectedListener(this::navigationItemSelected);
+        binding.layoutMain.viewpager.setAdapter(pagerAdapter);
+        binding.layoutMain.viewpager.setUserInputEnabled(false);
+        binding.layoutMain.viewpager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            }
 
+            @Override
+            public void onPageSelected(int position) {
+                switch (position) {
+                    case 0:
+                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_map_view).setChecked(true);
+                        break;
+                    case 1:
+                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_list_view).setChecked(true);
+                        break;
+                    case 2:
+                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_workmates_view).setChecked(true);
+                        break;
+                }
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+            }
+        });
+        binding.layoutMain.bottomNavView.setOnItemSelectedListener(this::navigationItemSelected);
+    }
+
+    private void initNavigationDrawer() {
         // Initialize the navigation drawer
         binding.navView.setNavigationItemSelectedListener(this::navigationItemSelected);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this,
@@ -102,42 +135,6 @@ public class MainActivity extends AppCompatActivity {
                     .apply(RequestOptions.circleCropTransform())
                     .into(headerBinding.navHeaderAvatar);
         });
-
-        // Check if the user is logged and start the sign-in activity if needed
-        if (!viewModel.isCurrentUserLogged()) {
-            authResultLauncher.launch(RC_SIGN_IN);
-        }
-
-        initNotificationAlarm();
-    }
-
-    private void initViewPager() {
-        binding.layoutMain.viewpager.setAdapter(pagerAdapter);
-        binding.layoutMain.viewpager.setUserInputEnabled(false);
-        binding.layoutMain.viewpager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-            }
-
-            @Override
-            public void onPageSelected(int position) {
-                switch (position) {
-                    case 0:
-                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_map_view).setChecked(true);
-                        break;
-                    case 1:
-                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_list_view).setChecked(true);
-                        break;
-                    case 2:
-                        binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_workmates_view).setChecked(true);
-                        break;
-                }
-            }
-
-            @Override
-            public void onPageScrollStateChanged(int state) {
-            }
-        });
     }
 
     @Override
@@ -167,11 +164,27 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int itemId = item.getItemId();
+
+        if (itemId == R.id.action_sort_by_distance)
+            viewModel.setSort(Sort.BY_DISTANCE);
+        else if (itemId == R.id.action_sort_by_rating)
+            viewModel.setSort(Sort.BY_RATING);
+        else if (itemId == R.id.action_sort_by_workmates)
+            viewModel.setSort(Sort.BY_WORKMATES);
+        else if (itemId == R.id.action_sort_by_opening_hour)
+            viewModel.setSort(Sort.BY_OPENING_HOUR);
+
+        return super.onOptionsItemSelected(item);
+    }
+
     private void handleAuthResponse(IdpResponse result) {
         if (result != null && result.getError() == null) {
             showSnackBar(getString(R.string.connection_succeed));
             viewModel.createUser();
-            //recreate();
+            recreate();
             return;
         }
         if (result == null) showSnackBar(getString(R.string.error_authentication_canceled));
@@ -189,22 +202,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public boolean navigationItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.logout) {
+        int itemId = item.getItemId();
+
+        if (itemId == R.id.logout) {
             viewModel.signOut(this);
             binding.drawerLayout.closeDrawer(GravityCompat.START);
             authResultLauncher.launch(RC_SIGN_IN);
-        } else if (item.getItemId() == R.id.action_settings) {
+        } else if (itemId == R.id.action_settings) {
             Intent settingsActivity = new Intent(this, SettingsActivity.class);
             startActivity(settingsActivity);
-        } else if (item.getItemId() == R.id.your_lunch) {
+        } else if (itemId == R.id.your_lunch) {
             Intent detailActivity = new Intent(this, RestaurantDetailActivity.class);
             detailActivity.putExtra("Id", chosenRestaurant);
             startActivity(detailActivity);
-        } else if (item.getItemId() == R.id.navigation_map_view) {
+        } else if (itemId == R.id.navigation_map_view) {
             binding.layoutMain.viewpager.setCurrentItem(0);
-        } else if (item.getItemId() == R.id.navigation_list_view) {
+        } else if (itemId == R.id.navigation_list_view) {
             binding.layoutMain.viewpager.setCurrentItem(1);
-        } else if (item.getItemId() == R.id.navigation_workmates_view) {
+        } else if (itemId == R.id.navigation_workmates_view) {
             binding.layoutMain.viewpager.setCurrentItem(2);
         }
         return false;
@@ -229,8 +244,8 @@ public class MainActivity extends AppCompatActivity {
         time.set(Calendar.MINUTE, 0);
         time.set(Calendar.SECOND, 0);
         time.getTime();
-        if (time.after(Calendar.getInstance())) time.add(Calendar.DAY_OF_YEAR, -1);
+        if (time.before(Calendar.getInstance())) time.add(Calendar.DAY_OF_YEAR, 1);
 
-        manager.setRepeating(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), 60_000, pending);
+        manager.setRepeating(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(), 86_400_000, pending);
     }
 }

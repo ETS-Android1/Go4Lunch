@@ -8,4 +8,29 @@
         android:title="@string/action_search"
         app:showAsAction="collapseActionView|ifRoom"
         app:actionViewClass="androidx.appcompat.widget.SearchView" />
+    <item
+        android:id="@+id/action_sort"
+        android:icon="@drawable/ic_baseline_sort_24"
+        android:orderInCategory="101"
+        android:title="@string/sort"
+        app:showAsAction="ifRoom" >
+        <menu>
+            <item
+                android:id="@+id/action_sort_by_distance"
+                android:title="@string/sort_by_distance"
+                app:showAsAction="never|withText" />
+            <item
+                android:id="@+id/action_sort_by_rating"
+                android:title="@string/sort_by_rating"
+                app:showAsAction="never|withText" />
+            <item
+                android:id="@+id/action_sort_by_workmates"
+                android:title="@string/sort_by_number_of_workmates"
+                app:showAsAction="never|withText" />
+            <item
+                android:id="@+id/action_sort_by_opening_hour"
+                android:title="@string/sort_by_opening_hours"
+                app:showAsAction="never|withText" />
+        </menu>
+    </item>
 </menu>

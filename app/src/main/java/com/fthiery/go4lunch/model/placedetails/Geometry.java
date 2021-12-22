@@ -11,6 +11,12 @@ public class Geometry {
 
     private Location location = new Location();
 
+    public Geometry() {}
+
+    public Geometry(LatLng latLng) {
+        this.setLocation(latLng);
+    }
+
     public Location getLocation() {
         return location;
     }

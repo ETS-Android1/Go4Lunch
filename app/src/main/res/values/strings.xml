@@ -31,7 +31,7 @@
     <string name="permission_required_toast">Permission required</string>
 
     <string name="hasnt_decided">%s hasn\'t decided yet.</string>
-    <string name="is_eating_at">%s is eating at %s</string>
+    <string name="is_eating_at">%1$s is eating at %2$s</string>
     <string name="call">Call</string>
     <string name="like">Like</string>
     <string name="website">Website</string>
@@ -40,7 +40,7 @@
     <string name="restaurant_name">Restaurant name</string>
     <string name="refresh_restaurants">Refresh restaurants</string>
     <string name="openUntil">Open until %s</string>
-    <string name="closedUntilDayHour">Closed until %s, %s</string>
+    <string name="closedUntilDayHour">Closed until %1$s, %2$s</string>
     <string name="closedUntilHour">Closed until %s</string>
     <string name="closedUntilTomorrow">"Closed until tomorrow, %s"</string>
     <string name="closingSoon">Closing soon</string>
@@ -57,4 +57,9 @@
     <string name="enable_notifications">Enable notifications</string>
     <string name="notifications_summary">Get a notification everyday at 12 o\'clock reminding you your choice of restaurant.</string>
     <string name="is_joining">%s is joining !</string>
+    <string name="sort">Sort</string>
+    <string name="sort_by_distance">Sort by distance</string>
+    <string name="sort_by_rating">Sort by rating</string>
+    <string name="sort_by_number_of_workmates">Sort by number of workmates</string>
+    <string name="sort_by_opening_hours">Sort by opening hours</string>
 </resources>

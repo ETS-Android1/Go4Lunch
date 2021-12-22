@@ -5,7 +5,9 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +26,10 @@ import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.ui.DetailActivity.RestaurantDetailActivity;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationAvailability;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -48,6 +54,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private GoogleMap googleMap;
     private ClusterManager<Restaurant> clusterManager;
     private FusedLocationProviderClient fusedLocationClient;
+    private Location lastLocation;
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -58,6 +65,18 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                     requireActivity().finish();
                 }
             });
+
+    private final LocationCallback locationCallback = new LocationCallback() {
+        @Override
+        public void onLocationResult(@NonNull LocationResult locationResult) {
+            super.onLocationResult(locationResult);
+            Location newLocation = locationResult.getLastLocation();
+            if (lastLocation == null || newLocation.distanceTo(lastLocation) > 5) {
+                viewModel.setLocation(newLocation);
+                lastLocation = locationResult.getLastLocation();
+            }
+        }
+    };
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Initialise the ViewModel
@@ -72,11 +91,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         // Initialize the location provider
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
-
-        viewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), restaurants -> {
-            updateMarkers(restaurants);
-            centerCameraAround(restaurants);
-        });
 
         return binding.getRoot();
     }
@@ -93,6 +107,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     private void centerCameraAround(List<Restaurant> restaurants) {
+        // TODO : désactiver le centrage automatique quand on déplace la caméra manuellement; un FAB apparaît alors pour le réactiver
         if (restaurants.size() >= 1) {
             LatLngBounds.Builder builder = LatLngBounds.builder();
             for (Restaurant restaurant : restaurants) {
@@ -113,7 +128,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.setMaxZoomPreference(20.0f);
 
         // Initialize the Cluster Manager
-        clusterManager = new ClusterManager<Restaurant>(requireContext(), googleMap);
+        clusterManager = new ClusterManager<>(requireContext(), googleMap);
         clusterManager.setRenderer(new CustomClusterRenderer(requireContext(), googleMap, clusterManager));
         googleMap.setOnCameraIdleListener(clusterManager);
         googleMap.setOnMarkerClickListener(clusterManager);
@@ -147,19 +162,19 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         // Enable the location component
         enableMyLocation();
-        googleMap.setOnMyLocationButtonClickListener(() -> {
-            updateLocation();
-            return false;
+
+        // Observe updates to restaurant list and update markers
+        viewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), restaurants -> {
+            updateMarkers(restaurants);
+            centerCameraAround(restaurants);
         });
     }
 
     @SuppressLint("MissingPermission")
     private void enableMyLocation() {
-        if (isLocationPermissionGranted()) {
-            if (googleMap != null) {
-                googleMap.setMyLocationEnabled(true);
-                updateLocation();
-            }
+        if (isLocationPermissionGranted() && googleMap != null) {
+            googleMap.setMyLocationEnabled(true);
+            startLocationUpdates();
         } else {
             // Permission to access the location is missing. Show rationale and request permission
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -167,18 +182,29 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     @SuppressLint("MissingPermission")
-    public void updateLocation() {
-        if (isLocationPermissionGranted()) {
-            fusedLocationClient.getLastLocation().addOnSuccessListener(requireActivity(), location -> {
-                // Got last known location. In some rare situations this can be null.
-                if (location != null) {
-                    // Logic to handle location object
-                    viewModel.setLocation(location);
-                }
-            });
-        } else {
-            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
-        }
+    private void startLocationUpdates() {
+
+        LocationRequest locationRequest = LocationRequest.create();
+        locationRequest.setInterval(10000);
+        locationRequest.setFastestInterval(5000);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        enableMyLocation();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        fusedLocationClient.removeLocationUpdates(locationCallback);
     }
 
     private boolean isLocationPermissionGranted() {

@@ -10,7 +10,7 @@ public class User {
     private String emailAddress;
     private String photo;
     private String chosenRestaurantId;
-    @Exclude private Restaurant chosenRestaurant;
+    private transient Restaurant chosenRestaurant;
 
     public User () {}
 

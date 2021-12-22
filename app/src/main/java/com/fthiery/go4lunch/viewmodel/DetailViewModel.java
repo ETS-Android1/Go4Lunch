@@ -9,9 +9,16 @@ import com.fthiery.go4lunch.model.User;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.ObservableSource;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.functions.Consumer;
+import io.reactivex.rxjava3.functions.Function;
 
 public class DetailViewModel extends ViewModel {
 
@@ -20,39 +27,63 @@ public class DetailViewModel extends ViewModel {
     private final CompositeDisposable disposables = new CompositeDisposable();
 
     public DetailViewModel() {
-        super();
+        this(UserRepository.getInstance(),RestaurantRepository.getInstance());
+    }
 
-        userRepository = UserRepository.getInstance();
-        restaurantRepository = RestaurantRepository.getInstance();
+    public DetailViewModel(UserRepository userRepository, RestaurantRepository restaurantRepository) {
+        super();
+        this.userRepository = userRepository;
+        this.restaurantRepository = restaurantRepository;
     }
 
     public LiveData<Restaurant> watchRestaurantDetails(String id) {
         MutableLiveData<Restaurant> restaurantLiveData = new MutableLiveData<>();
 
-        disposables.add(restaurantRepository.watchRestaurant(id).subscribe(restaurant -> {
-            restaurantLiveData.postValue(restaurant);
-            disposables.add(userRepository.watchNumberOfUsers().subscribe(n -> {
-                restaurant.updateRating(n);
-                restaurantLiveData.postValue(new Restaurant(restaurant));
-            }));
-        }));
+        disposables.add(
+                restaurantRepository
+                        .watchRestaurant(id)
+                        .flatMap(this::updateRating)
+                        .subscribe(restaurantLiveData::postValue));
 
         return restaurantLiveData;
     }
 
+    private Observable<Restaurant> updateRating(Restaurant restaurant) {
+        return userRepository.watchNumberOfUsers()
+                .map(nTotalUsers -> {
+                    restaurant.updateRating(nTotalUsers);
+                    return restaurant;
+                });
+    }
+
     public LiveData<List<User>> watchWorkmatesEatingAtRestaurant(String restaurantId) {
         MutableLiveData<List<User>> workmatesLiveData = new MutableLiveData<>();
+        Map<String, User> users = new ConcurrentHashMap<>();
 
-        disposables.add(userRepository.watchUsersEatingAt(restaurantId).subscribe(users -> {
-            for (User user : users) {
-                restaurantRepository.getRestaurant(user.getChosenRestaurantId()).subscribe(restaurant -> {
-                    user.setChosenRestaurant(restaurant);
-                    workmatesLiveData.postValue(users);
-                });
-            }
-        }));
+        disposables.add(
+                userRepository
+                        .watchUsersEatingAt(restaurantId)
+                        .flatMap(Observable::fromIterable)
+                        .flatMap(this::updateChosenRestaurant)
+                        .subscribe(user -> {
+                            users.put(user.getId(), new User(user));
+                            workmatesLiveData.postValue(new ArrayList<>(users.values()));
+                        })
+        );
 
         return workmatesLiveData;
+    }
+
+    private Observable<User> updateChosenRestaurant(User user) {
+        if (user.getChosenRestaurantId().equals(""))
+            return Observable.just(user);
+        else return restaurantRepository
+                .getRestaurant(user.getChosenRestaurantId())
+                .map(restaurant -> {
+                    user.setChosenRestaurant(restaurant);
+                    return user;
+                })
+                .toObservable();
     }
 
     public void stopListening() {
@@ -60,18 +91,25 @@ public class DetailViewModel extends ViewModel {
     }
 
     public void toggleChosenRestaurant(String restaurantId) {
-        userRepository.getChosenRestaurant(getUserId()).subscribe(chosenRestaurantId -> {
-            if (chosenRestaurantId != null && chosenRestaurantId.equals(restaurantId)) {
-                userRepository.setChosenRestaurant("");
-            } else {
-                userRepository.setChosenRestaurant(restaurantId);
-            }
-        });
+        disposables.add(
+                userRepository
+                        .getChosenRestaurant(getUserId())
+                        .subscribe(chosenRestaurantId -> {
+                            if (chosenRestaurantId != null && chosenRestaurantId.equals(restaurantId)) {
+                                userRepository.setChosenRestaurant("");
+                            } else {
+                                userRepository.setChosenRestaurant(restaurantId);
+                            }
+                        })
+        );
     }
 
     public LiveData<String> watchChosenRestaurant() {
         MutableLiveData<String> chosenRestaurant = new MutableLiveData<>();
-        disposables.add(userRepository.watchChosenRestaurant(getUserId()).subscribe(chosenRestaurant::postValue));
+        disposables.add(
+                userRepository
+                        .watchChosenRestaurant(getUserId())
+                        .subscribe(chosenRestaurant::postValue));
         return chosenRestaurant;
     }
 

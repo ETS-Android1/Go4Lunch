@@ -27,7 +27,7 @@
     <string name="location_permission_denied">Permission de localisation refusée</string>
     <string name="permission_required_toast">Permission requise</string>
     <string name="hasnt_decided">%s n\'a pas encore décidé.</string>
-    <string name="is_eating_at">%s mange chez %s</string>
+    <string name="is_eating_at">%1$s mange chez %2$s</string>
     <string name="call">Appeler</string>
     <string name="like">J\'aime</string>
     <string name="website">Site web</string>
@@ -36,7 +36,7 @@
     <string name="restaurant_name">Nom du restaurant</string>
     <string name="refresh_restaurants">Rafraîchir les restaurants</string>
     <string name="openUntil">Ouvert jusqu\'à %s</string>
-    <string name="closedUntilDayHour">Fermé jusqu\'à %s, %s</string>
+    <string name="closedUntilDayHour">Fermé jusqu\'à %1$s, %2$s</string>
     <string name="closedUntilHour">Fermé jusqu\'à %s</string>
     <string name="closedUntilTomorrow">Fermé jusqu\'à demain, %s</string>
     <string name="closingSoon">Ferme bientôt</string>
@@ -53,4 +53,9 @@
     <string name="enable_notifications">Activer les notifications</string>
     <string name="notifications_summary">Recevoir une notification chaque jour vous rappelant votre choix de restaurant.</string>
     <string name="is_joining">%s mange ici !</string>
+    <string name="sort">Tri</string>
+    <string name="sort_by_distance">Tri par distance</string>
+    <string name="sort_by_rating">Tri par note</string>
+    <string name="sort_by_number_of_workmates">Tri par nombre de collègues</string>
+    <string name="sort_by_opening_hours">Tri par heures d\'ouvertures</string>
 </resources>

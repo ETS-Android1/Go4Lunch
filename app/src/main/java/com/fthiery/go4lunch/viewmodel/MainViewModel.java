@@ -4,7 +4,6 @@ import android.content.Context;
 import android.location.Location;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -14,24 +13,21 @@ import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.model.User;
 import com.fthiery.go4lunch.repository.RestaurantRepository;
 import com.fthiery.go4lunch.repository.UserRepository;
+import com.fthiery.go4lunch.utils.Sort;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.ObservableSource;
-import io.reactivex.rxjava3.core.SingleSource;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.disposables.Disposable;
-import io.reactivex.rxjava3.functions.Action;
-import io.reactivex.rxjava3.functions.Consumer;
-import io.reactivex.rxjava3.functions.Function;
 
 public class MainViewModel extends ViewModel {
 
@@ -47,12 +43,17 @@ public class MainViewModel extends ViewModel {
     private LatLng location;
     private int numberOfUsers = 1;
     AtomicInteger nRestaurants = new AtomicInteger();
+    private int sort = 0;
 
     public MainViewModel() {
-        super();
-        userRepository = UserRepository.getInstance();
-        restaurantRepository = RestaurantRepository.getInstance();
+        this(UserRepository.getInstance(), RestaurantRepository.getInstance());
         disposables.add(userRepository.watchNumberOfUsers().subscribe(this::updateRatings));
+    }
+
+    public MainViewModel(UserRepository userRepository, RestaurantRepository restaurantRepository) {
+        super();
+        this.userRepository = userRepository;
+        this.restaurantRepository = restaurantRepository;
     }
 
     private void updateRatings(Integer n) {
@@ -72,6 +73,7 @@ public class MainViewModel extends ViewModel {
     }
 
     public Task<Void> signOut(Context context) {
+        disposables.clear();
         return userRepository.signOut(context);
     }
 
@@ -117,8 +119,31 @@ public class MainViewModel extends ViewModel {
 
     private void updateRestaurantMap(Restaurant restaurant) {
         restaurantsMap.put(restaurant.getId(), new Restaurant(restaurant));
-        if (restaurantsMap.size() == nRestaurants.get())
-            restaurantsLiveData.postValue(new ArrayList<>(restaurantsMap.values()));
+        updateRestaurantMap();
+    }
+
+    private void updateRestaurantMap() {
+        // Builds a list from restaurantsMap then sorts it and updates the LiveData
+        if (restaurantsMap.size() == nRestaurants.get()) {
+            ArrayList<Restaurant> restaurants = new ArrayList<>(restaurantsMap.values());
+
+            Collections.sort(restaurants, (left, right) -> {
+                int comp = 0;
+
+                if (sort == Sort.BY_RATING)
+                    comp = (right.getRating() - left.getRating()) * 100000;
+                else if (sort == Sort.BY_WORKMATES)
+                    comp = (right.getWorkmates() - left.getWorkmates()) * 100000;
+                else if (sort == Sort.BY_OPENING_HOUR)
+                    comp = right.howLongStillOpen() - left.howLongStillOpen();
+
+                if (comp == 0) comp += left.getDistance() - right.getDistance();
+
+                return comp;
+            });
+
+            restaurantsLiveData.postValue(restaurants);
+        }
     }
 
     public LiveData<List<Restaurant>> getRestaurantsLiveData() {
@@ -146,7 +171,8 @@ public class MainViewModel extends ViewModel {
     private Observable<User> updateChosenRestaurant(User user) {
         if (user.getChosenRestaurantId().equals(""))
             return Observable.just(user);
-        else return restaurantRepository.getRestaurant(user.getChosenRestaurantId())
+        else return restaurantRepository
+                .getRestaurant(user.getChosenRestaurantId())
                 .map(restaurant -> {
                     user.setChosenRestaurant(restaurant);
                     return user;
@@ -173,5 +199,10 @@ public class MainViewModel extends ViewModel {
     protected void onCleared() {
         super.onCleared();
         disposables.clear();
+    }
+
+    public void setSort(int sortType) {
+        sort = sortType;
+        updateRestaurantMap();
     }
 }
