@@ -104,7 +104,7 @@ public class MainViewModel extends ViewModel {
                     restaurant.updateRating(numberOfUsers);
                     return restaurant;
                 })
-                .subscribe(this::updateRestaurantMap);
+                .subscribe(this::updateRestaurantMap, throwable -> Log.e("getRestaurants", "error: ", throwable));
 
         disposables.add(restaurantsDisposable);
     }

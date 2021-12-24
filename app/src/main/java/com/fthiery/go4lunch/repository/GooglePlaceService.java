@@ -1,4 +1,4 @@
-package com.fthiery.go4lunch.utils;
+package com.fthiery.go4lunch.repository;
 
 import com.fthiery.go4lunch.BuildConfig;
 import com.fthiery.go4lunch.model.placedetails.GooglePlaceDetailResponse;
@@ -6,6 +6,7 @@ import com.fthiery.go4lunch.model.placedetails.GooglePlaceNearbyResponse;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;

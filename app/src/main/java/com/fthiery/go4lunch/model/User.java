@@ -70,7 +70,7 @@ public class User {
         this.chosenRestaurantId = chosenRestaurantId;
     }
 
-    public Restaurant getChosenRestaurant() {
+    @Exclude public Restaurant getChosenRestaurant() {
         return chosenRestaurant;
     }
 

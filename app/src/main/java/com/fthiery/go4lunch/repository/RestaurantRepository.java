@@ -1,13 +1,12 @@
 package com.fthiery.go4lunch.repository;
 
-import static com.fthiery.go4lunch.utils.GooglePlaceService.retrofit;
+import static com.fthiery.go4lunch.repository.GooglePlaceService.retrofit;
 
 import android.util.Log;
 
 import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.model.placedetails.GooglePlaceDetailResponse;
 import com.fthiery.go4lunch.model.placedetails.GooglePlaceNearbyResponse;
-import com.fthiery.go4lunch.utils.GooglePlaceService;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;

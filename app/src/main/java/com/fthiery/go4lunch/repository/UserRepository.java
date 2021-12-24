@@ -27,6 +27,16 @@ import io.reactivex.rxjava3.core.Single;
 public class UserRepository {
 
     private static volatile UserRepository instance;
+    private final FirebaseFirestore firestore;
+
+    public UserRepository() {
+        firestore = FirebaseFirestore.getInstance();
+    }
+
+    public UserRepository(FirebaseFirestore firestore) {
+        this.firestore = firestore;
+    }
+
 
     public static UserRepository getInstance() {
         UserRepository result = instance;
@@ -108,8 +118,11 @@ public class UserRepository {
                     .addSnapshotListener((collection, error) -> {
                         List<String> chosenRestaurants = new ArrayList<>();
                         if (collection != null)
-                            for (QueryDocumentSnapshot doc : collection)
-                                chosenRestaurants.add(doc.get("chosenRestaurantId", String.class));
+                            for (QueryDocumentSnapshot doc : collection) {
+                                String chosenRestaurantId = doc.get("chosenRestaurantId", String.class);
+                                if (!chosenRestaurants.contains(chosenRestaurantId))
+                                    chosenRestaurants.add(chosenRestaurantId);
+                            }
                         emitter.onNext(chosenRestaurants);
                     });
             emitter.setCancellable(listener::remove);
@@ -162,7 +175,7 @@ public class UserRepository {
 
     // Get the Collection Reference
     private CollectionReference getUsersCollection() {
-        return FirebaseFirestore.getInstance().collection("users");
+        return firestore.collection("users");
     }
 
     // Create User in Firestore
@@ -174,13 +187,15 @@ public class UserRepository {
             String uid = user.getUid();
             String emailAddress = user.getEmail();
 
-            User userToCreate = new User(uid, username, emailAddress, urlPicture);
-
-            getUsersCollection()
-                    .document(uid)
-                    .get()
-                    .addOnSuccessListener(documentSnapshot -> getUsersCollection().document(uid).set(userToCreate));
+            createUser(new User(uid, username, emailAddress, urlPicture));
         }
+    }
+
+    public void createUser(User user) {
+        getUsersCollection()
+                .document(user.getId())
+                .get()
+                .addOnSuccessListener(documentSnapshot -> getUsersCollection().document(user.getId()).set(user));
     }
 
     public Observable<User> watchUser() {
