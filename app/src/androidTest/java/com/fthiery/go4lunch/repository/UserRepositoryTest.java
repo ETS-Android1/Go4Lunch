@@ -1,6 +1,7 @@
 package com.fthiery.go4lunch.repository;
 
 import static com.fthiery.go4lunch.TestUtils.TestUtils.clearFirebase;
+import static com.fthiery.go4lunch.TestUtils.TestUtils.firebaseAuthEmulatorInstance;
 import static com.fthiery.go4lunch.TestUtils.TestUtils.firebaseEmulatorInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
@@ -51,11 +52,7 @@ public class UserRepositoryTest extends TestCase {
         for (User user : userList) {
             firestore.collection("users").document(user.getId()).set(user);
         }
-        userRepository = new UserRepository(firestore);
-    }
-
-    @Before
-    public void setUp() throws Exception {
+        userRepository = new UserRepository(firestore, firebaseAuthEmulatorInstance());
     }
 
     @AfterClass

@@ -15,10 +15,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.ObservableSource;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
-import io.reactivex.rxjava3.functions.Consumer;
-import io.reactivex.rxjava3.functions.Function;
 
 public class DetailViewModel extends ViewModel {
 
@@ -114,11 +111,11 @@ public class DetailViewModel extends ViewModel {
     }
 
     public String getUserId() {
-        return userRepository.getCurrentUserUID();
+        return userRepository.getCurrentUserId();
     }
 
     public void toggleLike(Restaurant restaurant) {
-        restaurant.toggleLike(userRepository.getCurrentUserUID());
+        restaurant.toggleLike(userRepository.getCurrentUserId());
         restaurantRepository.addRestaurantToFirebase(restaurant);
     }
 }

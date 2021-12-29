@@ -4,7 +4,6 @@ import static com.fthiery.go4lunch.TestUtils.TestUtils.getOrAwaitValue;
 import static junit.framework.TestCase.assertEquals;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
@@ -19,12 +18,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,7 +59,7 @@ public class MainViewModelTest {
         Mockito.when(mockRestaurantRepository.searchRestaurants(any(), any())).thenReturn(Single.just(Arrays.asList(restaurant1, restaurant2, restaurant3)));
 
         UserRepository mockUserRepository = Mockito.mock(UserRepository.class);
-        Mockito.when(mockUserRepository.watchUser()).thenReturn(Observable.just(user1));
+        Mockito.when(mockUserRepository.watchCurrentUser()).thenReturn(Observable.just(user1));
         Mockito.when(mockUserRepository.watchNumberOfUsers()).thenReturn(Observable.just(3));
         Mockito.when(mockUserRepository.watchUsersEatingAt("1")).thenReturn(Observable.just(Arrays.asList(user1,user2)));
         Mockito.when(mockUserRepository.watchUsersEatingAt("2")).thenReturn(Observable.just(Collections.singletonList(user3)));
@@ -72,7 +67,7 @@ public class MainViewModelTest {
         Mockito.when(mockUserRepository.watchAllUsers()).thenReturn(Observable.just(Arrays.asList(user1,user2,user3)));
         Mockito.when(mockUserRepository.getChosenRestaurant("u1")).thenReturn(Single.just("1"));
         Mockito.when(mockUserRepository.watchChosenRestaurant("u1")).thenReturn(Observable.just("1"));
-        Mockito.when(mockUserRepository.getCurrentUserUID()).thenReturn("u1");
+        Mockito.when(mockUserRepository.getCurrentUserId()).thenReturn("u1");
 
         viewModel = new MainViewModel(mockUserRepository, mockRestaurantRepository);
     }
@@ -99,7 +94,7 @@ public class MainViewModelTest {
 
     @Test
     public void testGetUser() throws InterruptedException {
-        User user = getOrAwaitValue(viewModel.getUser());
+        User user = getOrAwaitValue(viewModel.watchCurrentUser());
 
         assert(user.equals(user1));
     }

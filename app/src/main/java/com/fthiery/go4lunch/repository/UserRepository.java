@@ -1,7 +1,6 @@
 package com.fthiery.go4lunch.repository;
 
 import android.content.Context;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -28,15 +27,16 @@ public class UserRepository {
 
     private static volatile UserRepository instance;
     private final FirebaseFirestore firestore;
+    private final FirebaseAuth firebaseAuth;
 
     public UserRepository() {
-        firestore = FirebaseFirestore.getInstance();
+        this(FirebaseFirestore.getInstance(),FirebaseAuth.getInstance());
     }
 
-    public UserRepository(FirebaseFirestore firestore) {
+    public UserRepository(FirebaseFirestore firestore, FirebaseAuth firebaseAuth) {
         this.firestore = firestore;
+        this.firebaseAuth = firebaseAuth;
     }
-
 
     public static UserRepository getInstance() {
         UserRepository result = instance;
@@ -102,7 +102,7 @@ public class UserRepository {
     }
 
     public void setChosenRestaurant(String restaurantId) {
-        String id = getCurrentUserUID();
+        String id = getCurrentUserId();
         if (id != null) {
             Map<String, Object> data = new HashMap<>();
             data.put("chosenRestaurantId", restaurantId);
@@ -155,13 +155,8 @@ public class UserRepository {
     }
 
     @Nullable
-    public FirebaseUser getCurrentUser() {
-        return FirebaseAuth.getInstance().getCurrentUser();
-    }
-
-    @Nullable
-    public String getCurrentUserUID() {
-        FirebaseUser user = getCurrentUser();
+    public String getCurrentUserId() {
+        FirebaseUser user = firebaseAuth.getCurrentUser();
         return (user != null) ? user.getUid() : null;
     }
 
@@ -170,6 +165,13 @@ public class UserRepository {
     }
 
     public Task<Void> deleteUser(Context context) {
+        String id = getCurrentUserId();
+        if (id != null) {
+            getUsersCollection()
+                    .document(id)
+                    .delete();
+        }
+        signOut(context);
         return AuthUI.getInstance().delete(context);
     }
 
@@ -180,7 +182,7 @@ public class UserRepository {
 
     // Create User in Firestore
     public void createUser() {
-        FirebaseUser user = getCurrentUser();
+        FirebaseUser user = firebaseAuth.getCurrentUser();
         if (user != null) {
             String urlPicture = (user.getPhotoUrl() != null) ? user.getPhotoUrl().toString() : null;
             String username = user.getDisplayName();
@@ -191,15 +193,15 @@ public class UserRepository {
         }
     }
 
-    public void createUser(User user) {
+    private void createUser(User user) {
         getUsersCollection()
                 .document(user.getId())
                 .get()
                 .addOnSuccessListener(documentSnapshot -> getUsersCollection().document(user.getId()).set(user));
     }
 
-    public Observable<User> watchUser() {
-        return watchUser(getCurrentUserUID());
+    public Observable<User> watchCurrentUser() {
+        return watchUser(getCurrentUserId());
     }
 
     public Observable<User> watchUser(String userId) {
@@ -208,8 +210,7 @@ public class UserRepository {
                     .document(userId)
                     .addSnapshotListener((document, error) -> {
                         if (error != null) emitter.onError(error);
-                        User user = document != null ? document.toObject(User.class) : null;
-                        if (user != null) emitter.onNext(user);
+                        emitter.onNext(document != null ? document.toObject(User.class) : new User());
                     });
             emitter.setCancellable(listener::remove);
         });

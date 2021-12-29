@@ -36,6 +36,7 @@ import com.fthiery.go4lunch.ui.settings.SettingsActivity;
 import com.fthiery.go4lunch.utils.Sort;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.Calendar;
 
@@ -47,6 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private final ViewPagerAdapter pagerAdapter = new ViewPagerAdapter(this);
     private final ActivityResultLauncher<Integer> authResultLauncher = registerForActivityResult(new AuthResultContract(), this::handleAuthResponse);
     private String chosenRestaurant;
+    private boolean searchIconVisible = true;
+    private boolean sortIconVisible = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,46 +62,48 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Check if the user is logged and start the sign-in activity if needed
-        if (!viewModel.isCurrentUserLogged()) {
-            authResultLauncher.launch(RC_SIGN_IN);
-        } else {
-            // Initialize the toolbar
-            setSupportActionBar(binding.layoutMain.toolbar);
+        FirebaseAuth.getInstance().addAuthStateListener(firebaseAuth -> {
+            // Check if the user is logged and start the sign-in activity if needed
+            if (!viewModel.isCurrentUserLogged()) {
+                authResultLauncher.launch(RC_SIGN_IN);
+            } else {
+                // Initialize the toolbar
+                setSupportActionBar(binding.layoutMain.toolbar);
 
-            // Initialize the rest of the activity
-            initViewPager();
-            initNavigationDrawer();
-            initNotificationAlarm();
-        }
+                // Initialize the rest of the activity
+                initViewPager();
+                initNavigationDrawer();
+                initNotificationAlarm();
+            }
+        });
     }
 
     private void initViewPager() {
         // Initialize the viewpager and bottom navigation
         binding.layoutMain.viewpager.setAdapter(pagerAdapter);
         binding.layoutMain.viewpager.setUserInputEnabled(false);
-        binding.layoutMain.viewpager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-            }
 
+        binding.layoutMain.viewpager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 switch (position) {
                     case 0:
                         binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_map_view).setChecked(true);
+                        searchIconVisible = true;
+                        sortIconVisible = false;
                         break;
                     case 1:
                         binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_list_view).setChecked(true);
+                        searchIconVisible = true;
+                        sortIconVisible = true;
                         break;
                     case 2:
                         binding.layoutMain.bottomNavView.getMenu().findItem(R.id.navigation_workmates_view).setChecked(true);
+                        searchIconVisible = false;
+                        sortIconVisible = false;
                         break;
                 }
-            }
-
-            @Override
-            public void onPageScrollStateChanged(int state) {
+                invalidateOptionsMenu();
             }
         });
         binding.layoutMain.bottomNavView.setOnItemSelectedListener(this::navigationItemSelected);
@@ -119,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         // Bind navigation drawer fields
         View headerView = binding.navView.getHeaderView(0);
         NavHeaderMainBinding headerBinding = NavHeaderMainBinding.bind(headerView);
-        viewModel.getUser().observe(this, user -> {
+        viewModel.watchCurrentUser().observe(this, user -> {
             // Display the user name and email address
             headerBinding.navHeaderName.setText(user.getName());
             headerBinding.navHeaderMail.setText(user.getEmail());
@@ -141,6 +146,8 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+        menu.findItem(R.id.action_search).setVisible(searchIconVisible);
+        menu.findItem(R.id.action_sort).setVisible(sortIconVisible);
 
         // Associate searchable configuration with the SearchView
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
@@ -184,7 +191,6 @@ public class MainActivity extends AppCompatActivity {
         if (result != null && result.getError() == null) {
             showSnackBar(getString(R.string.connection_succeed));
             viewModel.createUser();
-            recreate();
             return;
         }
         if (result == null) showSnackBar(getString(R.string.error_authentication_canceled));
@@ -207,7 +213,6 @@ public class MainActivity extends AppCompatActivity {
         if (itemId == R.id.logout) {
             viewModel.signOut(this);
             binding.drawerLayout.closeDrawer(GravityCompat.START);
-            authResultLauncher.launch(RC_SIGN_IN);
         } else if (itemId == R.id.action_settings) {
             Intent settingsActivity = new Intent(this, SettingsActivity.class);
             startActivity(settingsActivity);

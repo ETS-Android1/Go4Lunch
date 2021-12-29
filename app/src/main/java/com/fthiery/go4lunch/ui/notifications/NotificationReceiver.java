@@ -53,7 +53,7 @@ public class NotificationReceiver extends BroadcastReceiver {
         if (prefs.getBoolean("notifications", false)) {
             // If the user has activated notifications in the settings, create the notification
 
-            String userId = userRepository.getCurrentUserUID();
+            String userId = userRepository.getCurrentUserId();
             disposables.add(userRepository.getChosenRestaurant(userId).subscribe(restaurantId -> {
 
                 // Build notification based on Intent

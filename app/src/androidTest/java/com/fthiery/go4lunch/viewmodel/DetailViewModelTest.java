@@ -53,7 +53,7 @@ public class DetailViewModelTest {
         Mockito.when(mockUserRepository.watchUsersEatingAt("1")).thenReturn(Observable.just(Arrays.asList(user1,user2,user3)));
         Mockito.when(mockUserRepository.getChosenRestaurant("u1")).thenReturn(Single.just("1"));
         Mockito.when(mockUserRepository.watchChosenRestaurant("u1")).thenReturn(Observable.just("1"));
-        Mockito.when(mockUserRepository.getCurrentUserUID()).thenReturn("u1");
+        Mockito.when(mockUserRepository.getCurrentUserId()).thenReturn("u1");
 
         viewModel = new DetailViewModel(mockUserRepository, mockRestaurantRepository);
     }

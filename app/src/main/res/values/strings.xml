@@ -62,4 +62,10 @@
     <string name="sort_by_rating">Sort by rating</string>
     <string name="sort_by_number_of_workmates">Sort by number of workmates</string>
     <string name="sort_by_opening_hours">Sort by opening hours</string>
+    <string name="data_management">Data management</string>
+    <string name="delete_personal_data">Delete all my personal data</string>
+    <string name="delete_account_dialog_title">Delete my account</string>
+    <string name="delete_account_warning">You are about to lose your data. Are you sure ?</string>
+    <string name="delete_acount_dialog_confirm">Delete</string>
+    <string name="delete_acount_dialog_cancel">Cancel</string>
 </resources>

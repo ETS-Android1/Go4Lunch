@@ -9,4 +9,13 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/data_management">
+
+        <Preference
+            app:key="delete_account"
+            app:summary="@string/delete_personal_data"
+            app:title="@string/delete_account_dialog_title" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

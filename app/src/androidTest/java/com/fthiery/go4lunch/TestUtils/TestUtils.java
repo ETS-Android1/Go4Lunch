@@ -7,6 +7,8 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthSettings;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
@@ -67,6 +69,18 @@ public class TestUtils {
         }
 
         return firestore;
+    }
+
+    public static FirebaseAuth firebaseAuthEmulatorInstance() {
+        FirebaseAuth firebaseAuth = FirebaseAuth.getInstance();
+
+        try {
+            firebaseAuth.useEmulator("10.0.0.2", 9099);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return firebaseAuth;
     }
 
     public static void clearFirebase() {

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.location.Location;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -16,10 +15,10 @@ import com.fthiery.go4lunch.repository.UserRepository;
 import com.fthiery.go4lunch.utils.Sort;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,13 +62,8 @@ public class MainViewModel extends ViewModel {
         }
     }
 
-    @Nullable
-    private FirebaseUser getCurrentUser() {
-        return userRepository.getCurrentUser();
-    }
-
     public Boolean isCurrentUserLogged() {
-        return (this.getCurrentUser() != null);
+        return (userRepository.getCurrentUserId() != null);
     }
 
     public Task<Void> signOut(Context context) {
@@ -161,7 +155,13 @@ public class MainViewModel extends ViewModel {
                         .flatMap(this::updateChosenRestaurant)
                         .subscribe(user -> {
                             users.put(user.getId(), new User(user));
-                            workmatesLiveData.postValue(new ArrayList<>(users.values()));
+                            ArrayList<User> userList = new ArrayList<>(users.values());
+                            Collections.sort(userList, (left, right) -> {
+                                if (left.getChosenRestaurant() == null) return Integer.MAX_VALUE;
+                                if (right.getChosenRestaurant() == null) return Integer.MIN_VALUE;
+                                return String.CASE_INSENSITIVE_ORDER.compare(left.getChosenRestaurant().getName(), right.getChosenRestaurant().getName());
+                            });
+                            workmatesLiveData.postValue(userList);
                         })
         );
 
@@ -180,10 +180,10 @@ public class MainViewModel extends ViewModel {
                 .toObservable();
     }
 
-    public LiveData<User> getUser() {
+    public LiveData<User> watchCurrentUser() {
         MutableLiveData<User> userLiveData = new MutableLiveData<>();
         disposables.add(
-                userRepository.watchUser().subscribe(
+                userRepository.watchCurrentUser().subscribe(
                         userLiveData::postValue,
                         throwable -> Log.e("userRepository", "onError: ", throwable)
                 )

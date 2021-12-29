@@ -58,4 +58,10 @@
     <string name="sort_by_rating">Tri par note</string>
     <string name="sort_by_number_of_workmates">Tri par nombre de collègues</string>
     <string name="sort_by_opening_hours">Tri par heures d\'ouvertures</string>
+    <string name="data_management">Gestion de mes données</string>
+    <string name="delete_account_dialog_title">Supprimer mon compte</string>
+    <string name="delete_personal_data">Effacer toutes mes données personnelles</string>
+    <string name="delete_account_warning">Vous êtes sur le point de perdre vos données. Êtes-vous sûr ?</string>
+    <string name="delete_acount_dialog_confirm">Effacer</string>
+    <string name="delete_acount_dialog_cancel">Annuler</string>
 </resources>
