@@ -34,7 +34,7 @@
     <string name="i_want_to_eat_there">Je veux y manger</string>
     <string name="restaurant_address">Adresse du restaurant</string>
     <string name="restaurant_name">Nom du restaurant</string>
-    <string name="refresh_restaurants">Rafraîchir les restaurants</string>
+    <string name="camera_automatic">Remettre la caméra en mode automatique</string>
     <string name="openUntil">Ouvert jusqu\'à %s</string>
     <string name="closedUntilDayHour">Fermé jusqu\'à %1$s, %2$s</string>
     <string name="closedUntilHour">Fermé jusqu\'à %s</string>

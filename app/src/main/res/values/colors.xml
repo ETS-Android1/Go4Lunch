@@ -6,4 +6,5 @@
     <color name="colorDisabled">#88606060</color>
     <color name="colorClosingSoon">#E65100</color>
     <color name="colorClosed">#B71C1C</color>
+    <color name="colorMarker">#F97843</color>
 </resources>

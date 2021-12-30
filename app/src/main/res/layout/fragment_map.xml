@@ -18,14 +18,14 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/floatingActionButton"
-        android:contentDescription="@string/refresh_restaurants"
+        android:contentDescription="@string/camera_automatic"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:clickable="true"
         android:focusable="true"
         android:visibility="invisible"
-        android:src="@drawable/ic_baseline_refresh_24"
+        android:src="@drawable/ic_location"
         map:layout_constraintBottom_toBottomOf="@+id/map"
         map:layout_constraintEnd_toEndOf="parent"
         map:layout_constraintStart_toStartOf="parent" />

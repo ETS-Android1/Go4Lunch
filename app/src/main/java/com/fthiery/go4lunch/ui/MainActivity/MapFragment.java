@@ -26,7 +26,6 @@ import com.fthiery.go4lunch.model.Restaurant;
 import com.fthiery.go4lunch.ui.DetailActivity.RestaurantDetailActivity;
 import com.fthiery.go4lunch.viewmodel.MainViewModel;
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationAvailability;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -41,10 +40,11 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.view.DefaultClusterRenderer;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
@@ -54,8 +54,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private GoogleMap googleMap;
     private ClusterManager<Restaurant> clusterManager;
     private FusedLocationProviderClient fusedLocationClient;
-    private Location lastLocation;
+    private boolean cameraAutomaticMode = true;
+    private List<Restaurant> restaurantList = new ArrayList<>();
 
+    // Callback for managing location permission
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
@@ -66,7 +68,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 }
             });
 
+    // Callback for when location is updated
     private final LocationCallback locationCallback = new LocationCallback() {
+        private Location lastLocation;
         @Override
         public void onLocationResult(@NonNull LocationResult locationResult) {
             super.onLocationResult(locationResult);
@@ -106,9 +110,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    private void centerCameraAround(List<Restaurant> restaurants) {
-        // TODO : désactiver le centrage automatique quand on déplace la caméra manuellement; un FAB apparaît alors pour le réactiver
-        if (restaurants.size() >= 1) {
+    private void centerCameraAround(Collection<Restaurant> restaurants) {
+        if (restaurants.size() >= 1 && cameraAutomaticMode) {
             LatLngBounds.Builder builder = LatLngBounds.builder();
             for (Restaurant restaurant : restaurants) {
                 builder.include(restaurant.getPosition());
@@ -133,31 +136,33 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.setOnCameraIdleListener(clusterManager);
         googleMap.setOnMarkerClickListener(clusterManager);
 
-        clusterManager.setOnClusterClickListener(cluster -> {
-            // When clicking on a cluster, zoom on it
-            LatLngBounds.Builder builder = LatLngBounds.builder();
-            for (ClusterItem item : cluster.getItems()) {
-                builder.include(item.getPosition());
+        // When moving the camera manually, put it in manual mode and display the FAB
+        googleMap.setOnCameraMoveStartedListener(reason -> {
+            if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
+                cameraAutomaticMode = false;
+                binding.floatingActionButton.setVisibility(View.VISIBLE);
             }
-            googleMap.animateCamera(
-                    CameraUpdateFactory.newLatLngBounds(builder.build(), 300),
-                    500,
-                    null);
+        });
 
+        // When clicking on a cluster, zoom on it
+        clusterManager.setOnClusterClickListener(cluster -> {
+            centerCameraAround(cluster.getItems());
             return true;
         });
 
+        // When clicking on a marker, start DetailActivity
         clusterManager.setOnClusterItemClickListener(restaurant -> {
-            // When clicking on a marker, start DetailActivity
             Intent detailActivity = new Intent(requireActivity(), RestaurantDetailActivity.class);
             detailActivity.putExtra("Id", restaurant.getId());
             requireActivity().startActivity(detailActivity);
             return true;
         });
 
-        binding.floatingActionButton.setVisibility(View.VISIBLE);
+        // When clicking on the FAB, put camera in automatic mode and hide the FAB
         binding.floatingActionButton.setOnClickListener(view -> {
-            viewModel.setLocation(googleMap.getCameraPosition().target);
+            cameraAutomaticMode = true;
+            binding.floatingActionButton.setVisibility(View.INVISIBLE);
+            centerCameraAround(restaurantList);
         });
 
         // Enable the location component
@@ -165,6 +170,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         // Observe updates to restaurant list and update markers
         viewModel.getRestaurantsLiveData().observe(getViewLifecycleOwner(), restaurants -> {
+            restaurantList = restaurants;
             updateMarkers(restaurants);
             centerCameraAround(restaurants);
         });
@@ -183,7 +189,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     @SuppressLint("MissingPermission")
     private void startLocationUpdates() {
-
+        // Poll location every 10 seconds
         LocationRequest locationRequest = LocationRequest.create();
         locationRequest.setInterval(10000);
         locationRequest.setFastestInterval(5000);
@@ -218,24 +224,24 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         @Override
         protected int getColor(int clusterSize) {
-            return getResources().getColor(R.color.colorPrimary);
+            return getResources().getColor(R.color.colorMarker);
         }
 
         @Override
         protected void onClusterItemUpdated(@NonNull Restaurant restaurant, @NonNull Marker marker) {
             if (restaurant.getWorkmates() != 0) {
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+                marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.marker_green));
             } else {
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker());
+                marker.setIcon(BitmapDescriptorFactory.fromResource(R.drawable.marker));
             }
         }
 
         @Override
         protected void onBeforeClusterItemRendered(@NonNull Restaurant restaurant, @NonNull MarkerOptions markerOptions) {
             if (restaurant.getWorkmates() != 0) {
-                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.marker_green));
             } else {
-                markerOptions.icon(BitmapDescriptorFactory.defaultMarker());
+                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.marker));
             }
         }
     }
