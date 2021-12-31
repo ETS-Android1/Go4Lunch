@@ -8,29 +8,18 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthSettings;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import kotlin.jvm.internal.Intrinsics;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okio.BufferedSource;
-import okio.Okio;
 
 public class TestUtils {
 
@@ -100,7 +89,7 @@ public class TestUtils {
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
                 Log.i("Firebase Clear", "Success: " + response.code());
                 countDownLatch.countDown();
             }
