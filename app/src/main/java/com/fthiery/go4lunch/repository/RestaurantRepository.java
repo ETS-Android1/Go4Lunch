@@ -15,8 +15,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class RestaurantRepository {
@@ -75,9 +77,9 @@ public class RestaurantRepository {
 
                             if (document != null && document.exists()) {
                                 Restaurant restaurant = document.toObject(Restaurant.class);
-                                emitter.onNext(restaurant);
+                                emitter.onNext(restaurant != null ? restaurant : new Restaurant());
                             } else {
-                                getRestaurantDetailsFromGooglePlaceApi(placeId)
+                                Disposable disposable = getRestaurantDetailsFromGooglePlaceApi(placeId)
                                         .subscribe(this::addRestaurantToFirebase);
                             }
                         });
@@ -95,13 +97,16 @@ public class RestaurantRepository {
                         .document(placeId)
                         .get()
                         .addOnSuccessListener(document -> {
-                            if (document.exists())
-                                emitter.onSuccess(document.toObject(Restaurant.class));
-                            else getRestaurantDetailsFromGooglePlaceApi(placeId)
-                                    .subscribe(restaurant -> {
-                                        addRestaurantToFirebase(restaurant);
-                                        emitter.onSuccess(restaurant);
-                                    });
+                            if (document.exists()) {
+                                Restaurant restaurant = document.toObject(Restaurant.class);
+                                emitter.onSuccess(restaurant != null ? restaurant : new Restaurant());
+                            } else {
+                                Disposable disposable = getRestaurantDetailsFromGooglePlaceApi(placeId)
+                                        .subscribe(restaurant -> {
+                                            addRestaurantToFirebase(restaurant);
+                                            emitter.onSuccess(restaurant);
+                                        });
+                            }
                         });
             }
         });

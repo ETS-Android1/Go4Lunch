@@ -2,14 +2,18 @@ package com.fthiery.go4lunch.repository;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.firebase.ui.auth.AuthUI;
 import com.fthiery.go4lunch.model.User;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -30,7 +34,7 @@ public class UserRepository {
     private final FirebaseAuth firebaseAuth;
 
     public UserRepository() {
-        this(FirebaseFirestore.getInstance(),FirebaseAuth.getInstance());
+        this(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance());
     }
 
     public UserRepository(FirebaseFirestore firestore, FirebaseAuth firebaseAuth) {
@@ -101,12 +105,11 @@ public class UserRepository {
         });
     }
 
-    public void setChosenRestaurant(String restaurantId) {
-        String id = getCurrentUserId();
-        if (id != null) {
+    public void setChosenRestaurant(String userId, String restaurantId) {
+        if (userId != null) {
             Map<String, Object> data = new HashMap<>();
             data.put("chosenRestaurantId", restaurantId);
-            getUsersCollection().document(id)
+            getUsersCollection().document(userId)
                     .set(data, SetOptions.merge());
         }
     }
@@ -181,23 +184,27 @@ public class UserRepository {
     }
 
     // Create User in Firestore
-    public void createUser() {
-        FirebaseUser user = firebaseAuth.getCurrentUser();
-        if (user != null) {
-            String urlPicture = (user.getPhotoUrl() != null) ? user.getPhotoUrl().toString() : null;
-            String username = user.getDisplayName();
-            String uid = user.getUid();
-            String emailAddress = user.getEmail();
+    public void addCurrentUserToFirestore() {
+        FirebaseUser fbUser = firebaseAuth.getCurrentUser();
+
+        if (fbUser != null) {
+            String urlPicture = (fbUser.getPhotoUrl() != null) ? fbUser.getPhotoUrl().toString() : null;
+            String username = fbUser.getDisplayName();
+            String uid = fbUser.getUid();
+            String emailAddress = fbUser.getEmail();
 
             createUser(new User(uid, username, emailAddress, urlPicture));
         }
     }
 
     private void createUser(User user) {
+        // If the user doesn't exist in the database, add it
         getUsersCollection()
                 .document(user.getId())
                 .get()
-                .addOnSuccessListener(documentSnapshot -> getUsersCollection().document(user.getId()).set(user));
+                .addOnSuccessListener(document -> {
+                    if (!document.exists()) getUsersCollection().document(user.getId()).set(user);
+                });
     }
 
     public Observable<User> watchCurrentUser() {
@@ -210,7 +217,9 @@ public class UserRepository {
                     .document(userId)
                     .addSnapshotListener((document, error) -> {
                         if (error != null) emitter.onError(error);
-                        emitter.onNext(document != null ? document.toObject(User.class) : new User());
+                        User user = document != null ? document.toObject(User.class) : null;
+                        if (user != null)
+                            emitter.onNext(user);
                     });
             emitter.setCancellable(listener::remove);
         });

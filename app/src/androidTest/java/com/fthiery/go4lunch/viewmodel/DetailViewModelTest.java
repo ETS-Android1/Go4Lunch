@@ -67,7 +67,7 @@ public class DetailViewModelTest {
 
     @Test
     public void testWatchChosenRestaurant() throws InterruptedException {
-        String chosenRestaurant = getOrAwaitValue(viewModel.watchChosenRestaurant());
+        String chosenRestaurant = getOrAwaitValue(viewModel.watchChosenRestaurant("u1"));
 
         assertEquals(chosenRestaurant,"1");
     }
@@ -86,5 +86,4 @@ public class DetailViewModelTest {
         String id = viewModel.getUserId();
         assertEquals(id, "u1");
     }
-
 }

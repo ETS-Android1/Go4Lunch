@@ -57,7 +57,7 @@ public class RestaurantDetailActivity extends AppCompatActivity {
                 .observe(this, adapter::submitList);
 
         // Floating Action Button to chose to eat at this restaurant
-        viewModel.watchChosenRestaurant().observe(this, chosenRestaurant -> {
+        viewModel.watchChosenRestaurant(viewModel.getUserId()).observe(this, chosenRestaurant -> {
             binding.restaurantDetailFab.setActivated(chosenRestaurant.equals(restaurantId));
         });
     }
@@ -99,10 +99,10 @@ public class RestaurantDetailActivity extends AppCompatActivity {
         setRating(restaurant.getRating());
         setLikeIcon(restaurant);
 
-        binding.actionLike.setOnClickListener(view -> viewModel.toggleLike(restaurant));
+        binding.actionLike.setOnClickListener(view -> viewModel.toggleLike(viewModel.getUserId(), restaurant));
 
         binding.restaurantDetailFab.setOnClickListener(view -> {
-            viewModel.toggleChosenRestaurant(restaurant.getId());
+            viewModel.toggleChosenRestaurant(viewModel.getUserId(), restaurant.getId());
         });
     }
 

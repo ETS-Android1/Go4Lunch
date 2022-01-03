@@ -9,6 +9,7 @@ import com.fthiery.go4lunch.model.User;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +22,7 @@ import java.util.List;
 public class UserRepositoryTest {
 
     private static UserRepository userRepository;
+    private static FirebaseFirestore firestore;
     private static final User user1 = new User("1", "Michael Jackson", "michaeljackson@music.com", "http://michaeljackson.com/picture.jpg");
     private static final User user2 = new User("2", "Jean-Paul II", "jeanpaul2@vatican.com", "http://vatican.com/jpii.jpg");
     private static final User user3 = new User("3", "Jacques Chirac", "jacqueschirac@elysee.fr", "http://politique.fr/chichi.jpg");
@@ -28,18 +30,22 @@ public class UserRepositoryTest {
     @BeforeClass
     public static void initFirebase() {
         // We use the firebase emulator to run the tests
-        FirebaseFirestore firestore = TestUtils.firebaseEmulatorInstance();
+        firestore = TestUtils.firebaseEmulatorInstance();
 
         user1.setChosenRestaurantId("r1");
         user2.setChosenRestaurantId("r2");
         user3.setChosenRestaurantId("r1");
 
+        userRepository = new UserRepository(firestore, TestUtils.firebaseAuthEmulatorInstance());
+    }
+
+    @Before
+    public void resetDB() {
         List<User> userList = Arrays.asList(user1, user2, user3);
 
         for (User user : userList) {
             firestore.collection("users").document(user.getId()).set(user);
         }
-        userRepository = new UserRepository(firestore, TestUtils.firebaseAuthEmulatorInstance());
     }
 
     @AfterClass
@@ -74,6 +80,16 @@ public class UserRepositoryTest {
 
         assert (users.get(0).equals(user1));
         assert (users.get(1).equals(user3));
+    }
+
+    @Test
+    public void setChosenRestaurant() {
+        userRepository.setChosenRestaurant(user1.getId(),"r3");
+        String restaurant = userRepository
+                .getChosenRestaurant(user1.getId())
+                .blockingGet();
+
+        assertEquals(restaurant,"r3");
     }
 
     @Test
@@ -112,5 +128,4 @@ public class UserRepositoryTest {
 
         assert (user.equals(user1));
     }
-
 }

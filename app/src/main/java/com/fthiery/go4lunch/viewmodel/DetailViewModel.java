@@ -24,7 +24,7 @@ public class DetailViewModel extends ViewModel {
     private final CompositeDisposable disposables = new CompositeDisposable();
 
     public DetailViewModel() {
-        this(UserRepository.getInstance(),RestaurantRepository.getInstance());
+        this(UserRepository.getInstance(), RestaurantRepository.getInstance());
     }
 
     public DetailViewModel(UserRepository userRepository, RestaurantRepository restaurantRepository) {
@@ -87,25 +87,25 @@ public class DetailViewModel extends ViewModel {
         disposables.clear();
     }
 
-    public void toggleChosenRestaurant(String restaurantId) {
+    public void toggleChosenRestaurant(String userId, String restaurantId) {
         disposables.add(
                 userRepository
-                        .getChosenRestaurant(getUserId())
+                        .getChosenRestaurant(userId)
                         .subscribe(chosenRestaurantId -> {
                             if (chosenRestaurantId != null && chosenRestaurantId.equals(restaurantId)) {
-                                userRepository.setChosenRestaurant("");
+                                userRepository.setChosenRestaurant(getUserId(), "");
                             } else {
-                                userRepository.setChosenRestaurant(restaurantId);
+                                userRepository.setChosenRestaurant(getUserId(), restaurantId);
                             }
                         })
         );
     }
 
-    public LiveData<String> watchChosenRestaurant() {
+    public LiveData<String> watchChosenRestaurant(String userId) {
         MutableLiveData<String> chosenRestaurant = new MutableLiveData<>();
         disposables.add(
                 userRepository
-                        .watchChosenRestaurant(getUserId())
+                        .watchChosenRestaurant(userId)
                         .subscribe(chosenRestaurant::postValue));
         return chosenRestaurant;
     }
@@ -114,8 +114,8 @@ public class DetailViewModel extends ViewModel {
         return userRepository.getCurrentUserId();
     }
 
-    public void toggleLike(Restaurant restaurant) {
-        restaurant.toggleLike(userRepository.getCurrentUserId());
+    public void toggleLike(String userId, Restaurant restaurant) {
+        restaurant.toggleLike(userId);
         restaurantRepository.addRestaurantToFirebase(restaurant);
     }
 }

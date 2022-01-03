@@ -190,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleAuthResponse(IdpResponse result) {
         if (result != null && result.getError() == null) {
             showSnackBar(getString(R.string.connection_succeed));
-            viewModel.createUser();
+            viewModel.addUserToFirebase();
             return;
         }
         if (result == null) showSnackBar(getString(R.string.error_authentication_canceled));

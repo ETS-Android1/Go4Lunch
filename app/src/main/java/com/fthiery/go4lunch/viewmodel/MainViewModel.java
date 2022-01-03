@@ -18,7 +18,6 @@ import com.google.android.gms.tasks.Task;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -191,8 +190,8 @@ public class MainViewModel extends ViewModel {
         return userLiveData;
     }
 
-    public void createUser() {
-        userRepository.createUser();
+    public void addUserToFirebase() {
+        userRepository.addCurrentUserToFirestore();
     }
 
     @Override

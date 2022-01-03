@@ -201,7 +201,7 @@ public class Restaurant implements ClusterItem {
         double nLikes = likes.size() * 6;
         double rating = 0;
         if (numberOfUsers != 0) {
-            rating = Math.round(nLikes / (double) numberOfUsers);
+            rating = Math.ceil(nLikes / (double) numberOfUsers);
         }
         this.rating = (int) rating;
     }
