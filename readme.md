@@ -22,19 +22,19 @@ Les restaurants à proximité s’affichent sur une carte ou sous forme de liste
 
 ## Aperçu de l’application
 ### Écran de connexion
-![](readme.assets/screenshot (6).png) 
+![](readme.assets/screenshot_authentification.png) 
 
 
 
 ### Vues principales
-![](readme.assets/screenshot (2).png) ![](readme.assets/screenshot (3).png) ![](readme.assets/screenshot (4).png) 
+![](readme.assets/screenshot_map_view.png) ![](readme.assets/screenshot_list_view.png) ![](readme.assets/screenshot_workmates_view.png) 
 
 
 
 ### Vue détails
-![](readme.assets/screenshot (7).png) 
+![](readme.assets/screenshot_detail_view.png) 
 
 
 
 ### Notification
-![](readme.assets/screenshot (1).png) 
+![](readme.assets/screenshot_notification.png) 
